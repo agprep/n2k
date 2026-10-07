@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2F4079">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="icon" href="icons/favicon-16.png" sizes="16x16">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="N2K">
+<title>N2K Logistics — Cargo booking (agent)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#2F4079; --navy-deep:#25315C; --navy-800:#1E2950; --ink:#1B2340;
+    --red:#C0392B; --green:#2E7D5B; --amber:#C77A26;
+    --bg:#F4F6FA; --card:#FFFFFF; --tint:#EEF1F7; --tint2:#F7F9FC; --slate:#6A7386; --line:#E4E8F0;
+    --display:'Archivo',sans-serif; --body:'Inter',sans-serif; --mono:'IBM Plex Mono',monospace;
+    --shadow:0 1px 2px rgba(37,49,92,.05),0 6px 18px rgba(37,49,92,.05);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:var(--body);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{text-decoration:none;color:inherit}
+  .mono{font-family:var(--mono)}
+
+  /* topbar (internal chrome, matches dispatch) */
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(244,246,250,.92);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:11px 22px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:9px;font-family:var(--display);font-weight:900;color:var(--navy);font-size:18px}
+  .brand .blogo{height:26px;width:auto;display:block}
+  .brand .pin{position:relative;width:19px;height:25px}
+  .brand .pin svg{width:100%;height:100%}
+  .brand .pin i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-style:normal;color:#fff;font-size:12px;font-weight:900;padding-bottom:4px}
+  .crumb{font-size:13.5px;color:var(--slate)}
+  .crumb b{color:var(--ink)}
+  .topbar .right{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .backlink{font-weight:600;font-size:13.5px;color:var(--navy)}
+  .who{display:flex;align-items:center;gap:8px;font-size:13px}
+  .who .av{width:30px;height:30px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:800;font-size:12px}
+
+  .wrap{max-width:960px;margin:0 auto;padding:22px 20px 90px}
+  .pagehead{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  h1{font-family:var(--display);font-weight:800;font-size:23px;letter-spacing:-.4px}
+  .pagehead .sub{font-size:13px;color:var(--slate)}
+  .pagehead .sub .mono{color:var(--navy)}
+
+  /* prebooking search hero */
+  .prebar{background:var(--navy);border-radius:15px;padding:15px 17px;display:flex;gap:11px;align-items:center;
+    margin-bottom:18px;box-shadow:0 8px 22px rgba(47,64,121,.28);flex-wrap:wrap}
+  .prebar .lbl{color:#fff;font-size:13px;font-weight:600;white-space:nowrap}
+  .prebar .lbl small{display:block;font-weight:400;opacity:.75;font-size:11.5px}
+  .prebar .box{flex:1;min-width:220px;display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.12);
+    border:1.5px solid rgba(255,255,255,.25);border-radius:11px;padding:0 13px}
+  .prebar .box:focus-within{border-color:#fff}
+  .prebar input{flex:1;border:0;outline:0;background:none;color:#fff;font-family:var(--mono);font-size:15px;padding:12px 0}
+  .prebar input::placeholder{color:rgba(255,255,255,.55);font-family:var(--body);font-size:13.5px}
+  .prebar button{border:0;border-radius:11px;background:var(--red);color:#fff;font-weight:700;font-size:14.5px;
+    padding:12px 20px;cursor:pointer}
+  .prefound{display:none;margin:-8px 0 18px;background:rgba(46,125,91,.10);border:1.5px solid rgba(46,125,91,.3);
+    border-radius:12px;padding:11px 15px;font-size:13px;color:var(--green);font-weight:600}
+  .prefound.show{display:block}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
+    padding:19px 20px;margin-bottom:15px}
+  .card h2{font-family:var(--display);font-weight:800;font-size:15.5px;margin-bottom:13px;display:flex;align-items:center;gap:9px}
+  .card h2 .n{width:22px;height:22px;border-radius:50%;background:var(--tint);color:var(--navy);font-size:12px;
+    display:inline-flex;align-items:center;justify-content:center;font-family:var(--body);font-weight:800}
+
+  /* segmented toggles */
+  .seg{display:inline-flex;background:var(--tint);border-radius:10px;padding:3px;gap:3px}
+  .seg button{border:0;background:none;font-family:var(--body);font-weight:600;font-size:13px;color:var(--slate);
+    padding:8px 15px;border-radius:8px;cursor:pointer;transition:.12s}
+  .seg button.on{background:var(--navy);color:#fff}
+  .segrow{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .seglbl{font-size:12px;color:var(--slate);font-weight:600;margin-right:2px}
+
+  /* compact inline row for the shipment/LR toggles, folded into section 1
+     instead of their own card since they're already set automatically by
+     the destination chosen above */
+  .miniseg{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:14px;
+    padding-top:13px;border-top:1px dashed var(--line)}
+
+  /* collapsible card (Addresses) — collapsed by default, expands on click */
+  .foldhead{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    cursor:pointer;user-select:none;margin-bottom:0}
+  .foldhead h2{margin-bottom:0}
+  .foldright{display:flex;align-items:center;gap:9px;flex-shrink:0}
+  .foldsum{font-size:12px;color:var(--slate);white-space:nowrap}
+  .foldarrow{width:18px;height:18px;color:var(--slate);flex-shrink:0;transition:transform .15s}
+  .card.open .foldarrow{transform:rotate(180deg)}
+  .foldbody{max-height:0;overflow:hidden;transition:max-height .2s ease}
+  .card.open .foldbody{max-height:900px}
+  .foldbody-inner{padding-top:16px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+  .fld{min-width:0}
+  .fld label{display:block;font-size:12px;font-weight:600;color:var(--slate);margin-bottom:5px}
+  .fld input,.fld select{width:100%;border:2px solid var(--line);border-radius:10px;background:var(--card);
+    padding:10px 12px;font-family:var(--body);font-size:14.5px;color:var(--ink);outline:0;transition:border-color .12s}
+  .fld input:focus,.fld select:focus{border-color:var(--navy)}
+  .fld input.mono{font-family:var(--mono)}
+  .fld input.err,.fld select.err{border-color:var(--red)}
+  .sugwrap{position:relative}
+  .sug{display:none;position:absolute;z-index:45;left:0;right:0;top:calc(100% + 4px);background:#fff;
+    border:1.5px solid var(--line);border-radius:11px;box-shadow:0 12px 30px rgba(37,49,92,.16);
+    max-height:250px;overflow-y:auto}
+  .sug.open{display:block}
+  .sug .it{padding:9px 12px;cursor:pointer;border-bottom:1px solid #F2F4F8}
+  .sug .it:last-child{border-bottom:0}
+  .sug .it:hover,.sug .it.on{background:var(--tint)}
+  .sug .it b{font-size:13.5px}
+  .sug .it span{display:block;font-size:11.5px;color:var(--slate);margin-top:1px}
+  .sug .it .mono{font-family:var(--mono)}
+  .sug .none{padding:10px 12px;font-size:12.5px;color:var(--slate)}
+  .combo{position:relative}
+  .combo input{width:100%;border:2px solid var(--line);border-radius:10px;background:var(--card);
+    padding:10px 30px 10px 12px;font-family:var(--body);font-size:14.5px;color:var(--ink);outline:0}
+  .combo input:focus{border-color:var(--navy)}
+  .combo input.err{border-color:var(--red)}
+  .combo #tobclear,.combo #dpclear{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;
+    color:var(--slate);font-size:18px;line-height:1;cursor:pointer;display:none;padding:2px 5px}
+  .combo.has #tobclear,.combo.has #dpclear{display:block}
+  .cpanel{display:none;position:absolute;z-index:40;left:0;right:0;top:calc(100% + 4px);background:#fff;
+    border:1.5px solid var(--line);border-radius:11px;box-shadow:0 12px 30px rgba(37,49,92,.16);
+    max-height:260px;overflow-y:auto}
+  .cpanel.open{display:block}
+  .citem{padding:9px 12px;font-size:14px;cursor:pointer;border-bottom:1px solid #F2F4F8}
+  .citem:last-child{border-bottom:0}
+  .citem:hover,.citem.on{background:var(--tint)}
+  .citem b{color:var(--navy)}
+  .dpitem{padding:8px 12px;line-height:1.35}
+  .dpn{font-weight:700;font-size:13.5px}
+  .dpn .dpl{font-weight:400;color:var(--slate);font-size:12px}
+  .dpm{font-size:11.5px;color:var(--slate);margin-top:1px}
+  .dpm b{color:var(--navy)}
+  .cnone{padding:12px;font-size:13px;color:var(--slate)}
+  .hint{font-size:11.5px;color:var(--red);margin-top:4px;display:none}
+  .hint.show{display:block}
+  .locked{font-size:13.5px;background:var(--tint);border-radius:10px;padding:10px 13px;display:flex;align-items:center;gap:8px}
+  .locked b{font-family:var(--mono)}
+  .locked svg{width:14px;height:14px;color:var(--slate)}
+
+  /* delivery + payment chips */
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{border:2px solid var(--line);background:var(--card);border-radius:999px;padding:8px 15px;font-weight:600;
+    font-size:13px;cursor:pointer;font-family:var(--body);color:var(--ink);transition:.12s}
+  .chip.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  .chip:disabled{opacity:.45;cursor:not-allowed}
+  .paylock{font-size:12.5px;color:var(--amber);font-weight:600;background:rgba(199,122,38,.09);
+    border-radius:9px;padding:9px 12px;margin-top:2px}
+  .payhint{font-size:12px;color:var(--slate);margin-top:8px}
+  .savedsel{border:2px solid var(--line);border-radius:9px;padding:6px 8px;font-size:12.5px;font-family:var(--body);
+    color:var(--navy);background:var(--tint2);outline:0;max-width:190px}
+  .addrsave{display:none;margin-top:10px;background:var(--tint2);border:1.5px dashed #C3CBDD;border-radius:10px;
+    padding:9px 12px;font-size:12.5px;color:var(--slate);align-items:center;gap:10px;flex-wrap:wrap}
+  .addrsave.show{display:flex}
+  .addrsave label{display:flex;align-items:center;gap:6px;font-weight:600;color:var(--navy);cursor:pointer}
+  .addrsave input[type=checkbox]{width:15px;height:15px;accent-color:var(--navy)}
+  .chip small{font-weight:500;opacity:.75}
+
+  /* article lines */
+  .invhead,.invrow{display:grid;grid-template-columns:1.1fr .9fr .9fr .9fr 1.1fr 30px;gap:9px;align-items:center}
+  .invhead{font-family:var(--mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--slate);
+    font-weight:600;padding:0 2px 7px}
+  .invrow{padding:7px 0;border-top:1px solid var(--line)}
+  .invrow input{width:100%;border:2px solid var(--line);border-radius:9px;padding:8px 9px;font-size:13.5px;
+    font-family:var(--body);outline:0}
+  .invrow input:focus{border-color:var(--navy)}
+  .invrow input.err{border-color:var(--red);background:#FFF7F6}
+  .invrow .del{border:0;background:none;color:#C3C9D6;cursor:pointer;font-size:17px;line-height:1}
+  .invrow .del:hover{color:var(--red)}
+  @media (max-width:760px){ .invhead{display:none} .invrow{grid-template-columns:1fr 1fr;row-gap:8px} }
+  .applyall{border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:6px 11px;
+    font-family:var(--body);font-size:12px;font-weight:700;color:var(--navy);cursor:pointer}
+  .applyall:hover{border-color:#C3CBDD}
+  .bseg{display:inline-flex;border:1.5px solid var(--line);border-radius:8px;overflow:hidden}
+  .bseg button{border:0;background:#fff;font-family:var(--body);font-size:11.5px;font-weight:700;
+    padding:6px 9px;cursor:pointer;color:var(--slate)}
+  .bseg button.on{background:var(--navy);color:#fff}
+  .linehead,.linerow{display:grid;grid-template-columns:1.25fr .55fr .65fr .65fr 104px .8fr .85fr 30px;gap:8px;align-items:center}
+  .linehead{font-family:var(--mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--slate);
+    font-weight:600;padding:0 2px 7px}
+  .linerow{padding:7px 0;border-top:1px solid var(--line)}
+  .linerow input,.linerow select{width:100%;border:2px solid var(--line);border-radius:9px;padding:8px 9px;
+    font-size:13.5px;font-family:var(--body);outline:0}
+  .linerow input:focus,.linerow select:focus{border-color:var(--navy)}
+  .linerow .tot{font-family:var(--mono);font-weight:600;font-size:13.5px;text-align:right;color:var(--navy)}
+  .linerow .del{border:0;background:none;color:#C3C9D6;cursor:pointer;font-size:17px;line-height:1}
+  .linerow .del:hover{color:var(--red)}
+  .addline{margin-top:10px;border:2px dashed var(--line);background:none;border-radius:10px;width:100%;
+    padding:10px;font-weight:600;font-size:13.5px;color:var(--navy);cursor:pointer}
+  .addline:hover{border-color:#C3CBDD}
+
+  /* attach photo / video — optional, tied to the whole consignment */
+  .attachrow{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .attachrow .albl{font-size:12px;font-weight:700;color:var(--slate)}
+  .attachrow .albl .opt{font-weight:400;color:#9AA2B3;margin-left:2px}
+  .attachbtns{display:flex;gap:9px}
+  .abtn{position:relative;display:inline-flex;align-items:center;justify-content:center;
+    width:38px;height:38px;border:1.5px solid var(--line);background:#fff;
+    border-radius:10px;cursor:pointer;transition:.12s;color:var(--navy)}
+  .abtn:hover{border-color:var(--navy);background:var(--tint)}
+  .abtn svg{width:17px;height:17px;flex-shrink:0}
+  .abtn .cnt{position:absolute;top:-6px;right:-6px;background:var(--navy);color:#fff;font-size:10px;font-weight:800;
+    border-radius:999px;min-width:16px;height:16px;padding:0 4px;display:none;align-items:center;
+    justify-content:center;font-family:var(--body);border:2px solid #fff}
+  .abtn .cnt.show{display:inline-flex}
+  .abtn::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#fff;font-size:11px;font-weight:600;padding:5px 9px;border-radius:7px;
+    white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;font-family:var(--body);z-index:5}
+  .abtn:hover::after{opacity:1}
+  .abtn:disabled{opacity:.5;cursor:not-allowed}
+  .amsg{font-size:11.5px;color:var(--red);flex-basis:100%;display:none}
+  .amsg.show{display:block}
+  .thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px;width:100%}
+  .thumb{position:relative;width:60px;height:60px;border-radius:9px;overflow:hidden;border:1.5px solid var(--line);
+    background:var(--tint2)}
+  .thumb img,.thumb video{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb .vidmark{position:absolute;inset:0;background:rgba(27,35,64,.28);display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .thumb .vidmark svg{width:16px;height:16px;color:#fff}
+  .thumb .rm{position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:rgba(27,35,64,.7);
+    color:#fff;border:0;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+  .thumb.up .rm{display:none}
+  .thumb.up::before{content:'';position:absolute;inset:0;border:2px solid var(--navy);border-top-color:transparent;
+    border-radius:50%;width:18px;height:18px;margin:auto;animation:aspin .7s linear infinite}
+  @keyframes aspin{to{transform:rotate(360deg)}}
+
+  /* totals strip */
+  .totals{display:grid;grid-template-columns:repeat(3,1fr) 1.3fr;gap:11px;margin-top:15px}
+  .tbox{background:var(--tint2);border:1px solid var(--line);border-radius:11px;padding:10px 12px}
+  .tbox .k{font-size:11px;color:var(--slate);font-weight:600}
+  .tbox input{width:100%;border:0;background:none;outline:0;font-family:var(--mono);font-weight:600;font-size:15px;color:var(--ink);margin-top:2px}
+  .tbox.grand{background:var(--navy);border-color:var(--navy)}
+  .tbox.grand .k{color:rgba(255,255,255,.75)}
+  .tbox.grand .v{font-family:var(--display);font-weight:900;font-size:21px;color:#fff;margin-top:1px}
+
+  .ewrow{display:grid;grid-template-columns:1fr auto;gap:13px;align-items:end}
+  .ewnote{font-size:12px;color:var(--amber);font-weight:600;display:none}
+  .ewnote.show{display:block}
+
+  /* save bar */
+  .savebar{position:sticky;bottom:0;background:linear-gradient(180deg,rgba(244,246,250,0),var(--bg) 36%);
+    padding:14px 0 18px;display:flex;gap:11px;justify-content:flex-end}
+  .btn{border:0;border-radius:12px;font-family:var(--body);font-weight:700;font-size:15.5px;cursor:pointer;
+    padding:14px 26px;transition:transform .06s}
+  .btn:active{transform:translateY(1px)}
+  .btn.red{background:var(--red);color:#fff;box-shadow:0 8px 20px rgba(192,57,43,.3)}
+  .btn.ghost{background:var(--card);color:var(--navy);border:2px solid var(--line)}
+
+  /* success */
+  .okpanel{display:none;text-align:center;padding:40px 20px}
+  .okpanel.show{display:block;animation:pop .4s cubic-bezier(.2,1.3,.4,1)}
+  @keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+  .okpanel .ring{width:86px;height:86px;border-radius:50%;background:rgba(46,125,91,.12);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+  .okpanel .ring svg{width:42px;height:42px;color:var(--green)}
+  .okpanel h2{font-family:var(--display);font-weight:800;font-size:25px}
+  .okpanel .lr{margin:18px auto 0;max-width:360px;background:var(--card);border:1.5px dashed var(--navy);border-radius:14px;padding:16px}
+  .okpanel .lr .k{font-size:11.5px;color:var(--slate);font-weight:600}
+  .okpanel .lr .v{font-family:var(--mono);font-weight:600;font-size:21px;color:var(--navy);margin-top:4px}
+  .okpanel .sum{color:var(--slate);font-size:13.5px;margin-top:13px}
+  /* cancellation: deliberately not styled like the primary action — it is the
+     rare case, and an agent reaching for "Book next" must not hit it */
+  .btn.cancelbtn{border:2px solid var(--red);color:var(--red);background:#fff}
+  .canbox{background:#FBF0EF;border:1px solid #E9CBC7;border-radius:12px;padding:13px 15px;
+    margin-top:13px;text-align:left;display:none}
+  .canbox.on{display:block}
+  .canbox h4{font-family:var(--display);font-weight:800;font-size:14px;color:var(--red);margin-bottom:3px}
+  .canbox p{font-size:12.5px;color:#8A3A30;line-height:1.55;margin-bottom:10px}
+  .canbox label{display:block;font-size:10.5px;font-weight:700;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--slate);margin-bottom:4px}
+  .canbox select,.canbox input{width:100%;border:2px solid var(--line);border-radius:9px;
+    padding:9px 11px;font-family:var(--body);font-size:14px;background:#fff;margin-bottom:9px}
+  .canbox .row{display:flex;gap:9px;justify-content:flex-end}
+  .cancelled{border:2.5px solid var(--red);color:var(--red);font-family:var(--display);
+    font-weight:900;font-size:22px;letter-spacing:.14em;padding:5px 18px;display:inline-block;
+    transform:rotate(-7deg);margin:10px 0}
+  .okpanel .acts{margin-top:20px;display:flex;gap:11px;justify-content:center;flex-wrap:wrap}
+
+  .linerow input.err,.linerow select.err{border-color:var(--red);background:#FFF7F6}
+  .vsum{display:none;margin:14px 0 0;background:rgba(192,57,43,.07);border:1.5px solid rgba(192,57,43,.35);
+    border-radius:12px;padding:12px 15px;font-size:13px;color:var(--red);font-weight:600}
+  .vsum.show{display:block}
+  .vsum ul{margin:7px 0 0 18px;font-weight:500}
+  .vsum li{margin:2px 0}
+  .btn.wa{background:#1DA851;color:#fff}
+  .btn.sms{background:var(--navy);color:#fff}
+  .sharehint{font-size:12px;color:var(--slate);margin-top:10px}
+  @media (max-width:760px){
+    .lrmeta{grid-template-columns:1fr 1fr}
+    .grid2{grid-template-columns:1fr}
+    .linehead{display:none}
+    .linerow{grid-template-columns:1fr 1fr;row-gap:8px}
+    .linerow .tot{text-align:left}
+    .totals{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body>
+
+
+<div class="topbar">
+  <a class="brand" href="index.html"><img class="blogo" src="data:image/png;base64,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" alt="N2K Logistics"></a>
+  <span class="crumb">Internal · <b>Cargo booking</b></span>
+  </div>
+</div>
+
+<style id="n2k-boot">#form{opacity:0}</style>
+<script>
+/* Revealed by the page once its data is in. This timer is the backstop: if the
+   page's own code fails before it gets there, the content still appears rather
+   than the user staring at nothing. */
+setTimeout(function(){
+  var w=document.getElementById('form');
+  if(w && getComputedStyle(w).opacity==='0'){ w.style.transition='opacity .15s'; w.style.opacity='1'; }
+},6000);
+</script>
+<div class="wrap" id="form">
+  <div class="pagehead">
+    <h1>New consignment</h1>
+    <div class="sub" id="mesub">Booking from <span class="mono">…</span></div>
+  </div>
+
+  <!-- 1 destination + route: merged, since From/To just mirror the
+       destination that was already picked above -->
+  <div class="card">
+    <h2><span class="n">1</span>Where should the consignment be delivered?</h2>
+    <div class="fld">
+      <label>Destination <span class="req">*</span>
+        <span style="font-weight:400">(where the driver hands it over)</span></label>
+      <div class="combo" id="dpcombo">
+        <input id="dropinput" autocomplete="off" placeholder="Type a destination, line or town…" aria-label="Destination">
+        <button type="button" id="dpclear" title="Clear">&times;</button>
+        <div class="cpanel" id="dppanel"></div>
+      </div>
+      <div id="drophint" style="font-size:11.5px;color:var(--slate);margin-top:5px">Start typing — the line and hub are filled in for you</div>
+    </div>
+
+    <div class="grid2" style="margin-top:13px">
+      <div class="fld"><label>From (origin)</label>
+        <div class="locked"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><b id="obcode">—</b>&nbsp;<span id="obname"></span></div></div>
+      <div class="fld"><label>To (destination branch)</label>
+        <div class="combo" id="tobcombo">
+          <input id="tobsearch" autocomplete="off" placeholder="Type branch name or code…" aria-label="Destination branch">
+          <button type="button" id="tobclear" title="Clear">×</button>
+          <div class="cpanel" id="tobpanel"></div>
+        </div>
+        <select id="tobranch" hidden>
+          <option value="" selected disabled>Select branch</option>
+        </select>
+        <div class="hint" id="tobranch-h">Choose the destination branch</div></div>
+    </div>
+
+    <div class="miniseg">
+      <span class="seglbl">Shipment</span>
+      <div class="seg" id="scopeSeg"><button class="on" data-v="outstation">Outstation</button><button data-v="local">Local</button></div>
+      <span class="seglbl" style="margin-left:8px">LR number</span>
+      <div class="seg" id="lrSeg"><button class="on" data-v="system">System</button><button data-v="manual">Manual</button></div>
+    </div>
+    <div class="fld" id="manlrfld" style="display:none;margin-top:12px"><label>Manual LR number</label>
+      <input id="manlr" class="mono" placeholder="Enter LR from physical book">
+      <div class="hint" id="manlr-h">Enter the manual LR number</div></div>
+  </div>
+
+  <!-- 1 payment + delivery type -->
+  <div class="card">
+    <h2><span class="n">2</span>Payment <span class="req">*</span></h2>
+    <div class="chips" id="pay">
+      <button class="chip" data-v="prepaid">Paid</button>
+      <button class="chip" data-v="to_pay">To Pay</button>
+      <button class="chip" data-v="on_account">On Account</button>
+      <button class="chip" data-v="on_account_to_pay">On Account To Pay</button>
+    </div>
+    <div class="payhint" id="payreq" style="display:block;color:var(--slate)">Choose how this consignment is paid — nothing is selected by default</div>
+    <div class="payhint" id="payhint" style="display:none">On Account: for registered credit customers, billed monthly</div>
+
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
+      <span class="seglbl" style="display:block;margin-bottom:7px">Delivery type</span>
+      <div class="chips" id="dtype">
+        <button class="chip on" data-v="DD">DD <small>· Door Delivery</small></button>
+        <button class="chip" data-v="OD">OD <small>· Office Delivery</small></button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 2 parties -->
+  <div class="card">
+    <h2><span class="n">3</span>Sender &amp; receiver</h2>
+    <div class="grid2">
+      <div>
+        <div class="segrow" style="margin-bottom:9px"><span class="seglbl">Sender</span>
+          <div class="seg" id="skind"><button class="on" data-v="individual">Individual</button><button data-v="company">Company</button></div></div>
+        <div class="fld"><label>Mobile</label><span class="sugwrap"><input id="smob" class="mono" inputmode="numeric" maxlength="10" placeholder="10-digit mobile"><div class="sug" id="sug-smob"></div></span><div class="hint" id="smob-h">Valid 10-digit mobile needed</div>
+          <div id="sfound" style="display:none;font-size:11.5px;font-weight:600;margin-top:4px"></div></div>
+        <div class="fld" style="margin-top:10px"><label>Name</label><span class="sugwrap"><input id="snam" placeholder="Sender name"><div class="sug" id="sug-snam"></div></span><div class="hint" id="snam-h">Sender name needed</div></div>
+        <div class="fld" style="margin-top:10px"><label>Note <span style="font-weight:400">(optional — prints on the LR)</span></label>
+          <input id="snote" maxlength="200" placeholder="e.g. collect empty drums on the return trip"></div>
+        <div class="fld" id="sgstf" style="display:none;margin-top:10px"><label>GSTIN</label><input id="sgst" class="mono" placeholder="15-character GSTIN"></div>
+      </div>
+      <div>
+        <div class="segrow" style="margin-bottom:9px"><span class="seglbl">Receiver</span>
+          <div class="seg" id="rkind"><button class="on" data-v="individual">Individual</button><button data-v="company">Company</button></div></div>
+        <div class="fld"><label>Mobile</label><span class="sugwrap"><input id="rmob" class="mono" inputmode="numeric" maxlength="10" placeholder="10-digit mobile"><div class="sug" id="sug-rmob"></div></span><div class="hint" id="rmob-h">Valid 10-digit mobile needed</div>
+          <div id="rfound" style="display:none;font-size:11.5px;font-weight:600;margin-top:4px"></div></div>
+        <div class="fld" style="margin-top:10px"><label>Name</label><span class="sugwrap"><input id="rnam" placeholder="Receiver name"><div class="sug" id="sug-rnam"></div></span><div class="hint" id="rnam-h">Receiver name needed</div></div>
+        <div class="fld" style="margin-top:10px"><label>Note <span style="font-weight:400">(optional — prints on the LR)</span></label>
+          <input id="rnote" maxlength="200" placeholder="e.g. ring before delivery, shut 1–3 pm"></div>
+        <div class="fld" id="rgstf" style="display:none;margin-top:10px"><label>GSTIN</label><input id="rgst" class="mono" placeholder="15-character GSTIN"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 addresses — collapsed by default; most bookings never touch this -->
+  <div class="card" id="addrCard">
+    <div class="foldhead" id="addrFoldHead">
+      <h2><span class="n">4</span>Addresses</h2>
+      <div class="foldright">
+        <span class="foldsum" id="addrFoldSum">Not added · optional</span>
+        <svg class="foldarrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+    <div class="foldbody"><div class="foldbody-inner">
+    <div class="grid2">
+      <div>
+        <div class="segrow" style="margin-bottom:9px;justify-content:space-between">
+          <span class="seglbl">Pickup address <span style="font-weight:400">(optional — counter drop)</span></span>
+          <select id="ssaved" class="savedsel" style="display:none"></select>
+        </div>
+        <div class="fld"><label>Door no, street</label><input id="paddr" placeholder="Door no, street"></div>
+        <div class="grid2" style="margin-top:10px;gap:10px">
+          <div class="fld"><label>City</label><input id="pcity" placeholder="City"></div>
+          <div class="fld"><label>Pincode</label><input id="ppin" class="mono" inputmode="numeric" maxlength="6" placeholder="6-digit"></div>
+        </div>
+        <div class="fld" style="margin-top:10px"><label>Landmark</label><input id="pland" placeholder="Landmark"></div>
+        <div class="addrsave" id="psave">Address changed —
+          <label><input type="checkbox" id="psave-new">Save for this customer</label>
+          <label><input type="checkbox" id="psave-def">Make default</label></div>
+      </div>
+      <div>
+        <div class="segrow" style="margin-bottom:9px;justify-content:space-between">
+          <span class="seglbl">Delivery address <span id="dreq" style="color:var(--slate);font-weight:400">(optional)</span></span>
+          <select id="rsaved" class="savedsel" style="display:none"></select>
+        </div>
+        <div class="fld"><label>Door no, street</label><input id="daddr" placeholder="Door no, street"><div class="hint" id="daddr-h">Delivery address needed for door delivery</div></div>
+        <div class="grid2" style="margin-top:10px;gap:10px">
+          <div class="fld"><label>City</label><input id="dcity" placeholder="City"><div class="hint" id="dcity-h">City needed</div></div>
+          <div class="fld"><label>Pincode</label><input id="dpin" class="mono" inputmode="numeric" maxlength="6" placeholder="6-digit"></div>
+        </div>
+        <div class="fld" style="margin-top:10px"><label>Landmark</label><input id="dland" placeholder="Landmark"></div>
+        <div class="addrsave" id="dsave">Address changed —
+          <label><input type="checkbox" id="dsave-new">Save for this customer</label>
+          <label><input type="checkbox" id="dsave-def">Make default</label></div>
+      </div>
+    </div>
+    </div></div>
+  </div>
+
+  <!-- 4 articles -->
+  <div class="card">
+    <h2><span class="n">5</span>Articles &amp; freight</h2>
+    <div class="segrow" style="margin:-4px 0 12px">
+      <span class="seglbl">Default for new lines</span>
+      <div class="seg" id="basisSeg">
+        <button type="button" data-v="weight">Weight basis</button>
+        <button type="button" class="on" data-v="nos">Nos basis</button>
+      </div>
+      <button type="button" class="applyall" id="applyall">Apply to all lines</button>
+      <span class="m" id="basisnote" style="font-size:12px;color:var(--slate)">each line can use its own basis</span>
+    </div>
+    <div class="linehead"><span>Article</span><span>Qty</span><span>Actual kg</span><span>Billable</span><span>Basis</span><span>Rate ₹/unit</span><span style="text-align:right">Line total</span><span></span></div>
+    <div id="lines"></div>
+    <button class="addline" id="addline">+ Add article line</button>
+
+    <div class="attachrow">
+      <span class="albl">Attach <span class="opt">(optional)</span></span>
+      <div class="attachbtns">
+        <button type="button" class="abtn" id="photoBtn" data-tip="Attach photo (optional)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          <span class="cnt" id="photoCnt">0</span>
+        </button>
+        <button type="button" class="abtn" id="videoBtn" data-tip="Attach video (optional, ≤20s)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="23 7 16 12 23 17 23 7"/>
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+          </svg>
+          <span class="cnt" id="videoCnt">0</span>
+        </button>
+        <input type="file" id="photoInput" accept="image/*" capture="environment" multiple hidden>
+        <input type="file" id="videoInput" accept="video/*" capture="environment" hidden>
+      </div>
+      <div class="amsg" id="amsg"></div>
+      <div class="thumbs" id="thumbs"></div>
+    </div>
+
+    <div class="totals">
+      <div class="tbox"><div class="k">Freight</div><input id="tfreight" value="₹0" readonly></div>
+      <div class="tbox"><div class="k">Loading charges</div><input id="tload" inputmode="numeric" value="0"></div>
+      <div class="tbox"><div class="k">Docket charges</div><input id="tdocket" inputmode="numeric" value="0"></div>
+      <div class="tbox grand"><div class="k">Grand total</div><div class="v" id="tgrand">₹0</div></div>
+    </div>
+  </div>
+
+  <!-- 4 payment + eway -->
+
+
+  <!-- 6 invoice & e-way bill -->
+  <div class="card">
+    <h2><span class="n">6</span>Invoice &amp; E-Way Bill</h2>
+    <div class="invhead"><span>Invoice no.</span><span>Invoice date</span><span>Invoice value ₹</span>
+      <span>GST value ₹</span><span>E-Way Bill no.</span><span></span></div>
+    <div id="invs"></div>
+    <button class="addline" id="addinv" type="button">+ Add invoice</button>
+    <div class="ewnote" id="ewnote">⚠ Total ≥ ₹50,000 — at least one E-Way Bill number is required</div>
+  </div>
+
+  <div class="vsum" id="vsum"></div>
+
+  <div class="savebar">
+    <button class="btn ghost" onclick="location.reload()">Clear</button>
+    <button class="btn red" id="save">Save &amp; generate LR</button>
+  </div>
+</div>
+
+<!-- success -->
+<div class="wrap okpanel" id="ok">
+  <div class="ring"><svg fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+  <h2>Consignment booked</h2>
+  <div class="lr"><div class="k">LR / Consignment number</div><div class="v" id="lrout">—</div></div>
+  <div class="sum" id="oksum">—</div>
+  <div class="acts">
+    <button class="btn ghost" id="printlr">Print / Save (2 copies)</button>
+    <button class="btn cancelbtn" id="canlr">Cancel this LR</button>
+    <a class="btn wa" id="sh-wa" target="_blank" rel="noopener">WhatsApp</a>
+    <a class="btn sms" id="sh-sms">SMS</a>
+    <button class="btn red" onclick="location.reload()">Book next</button>
+  </div>
+  <div class="canbox" id="canbox">
+    <h4>Cancel this consignment?</h4>
+    <p><b>This cannot be undone.</b> The LR number is not reused — it stays in the register
+      marked cancelled, so the numbering never has a gap anyone has to explain. If a copy has
+      already been given to the customer, take it back or mark it.</p>
+    <label>Reason</label><select id="canwhy"></select>
+    <label>Note (optional)</label><input id="cannote" placeholder="Anything worth recording">
+    <div class="row">
+      <button class="btn ghost" id="cankeep">Keep it</button>
+      <button class="btn red" id="cango">Cancel this LR</button>
+    </div>
+  </div>
+  <div class="sharehint">Print → choose "Save as PDF" for a file. WhatsApp opens with the details ready — pick sender or receiver. SMS goes to the receiver.</div>
+  <div class="lrdoc" id="lrdoc"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="n2k_db.js"></script>
+<script>
+/* If the Supabase library does not arrive — slow line, blocked CDN, captive
+   wifi — every page sits on "loading…" for ever with no explanation, because
+   each data call fails separately with "Cannot read properties of null". Say so
+   once, plainly, instead. */
+window.addEventListener('DOMContentLoaded',function(){
+  if (window.supabase) return;
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:#C0392B;'+
+    'color:#fff;padding:11px 16px;font:600 13.5px Inter,Arial,sans-serif;text-align:center';
+  d.innerHTML='No connection to the database \u2014 the page cannot load data. '+
+    'Check the internet connection and reload.';
+  document.body.insertBefore(d, document.body.firstChild);
+});
+</script>
+
+<script>
+  const __me=window.N2K.requireRole(['booking_agent','admin']); if(!__me)throw new Error('redirect');
+  window.N2K.mountNav('booking');
+  // ---------- state ----------
+  const st={scope:'outstation',lr:'system',dtype:'DD',skind:'individual',rkind:'individual',pay:null,dp:null};
+  const ARTICLES=['Loading…'];
+
+  // segmented toggles
+  function seg(id,key,cb){document.getElementById(id).addEventListener('click',e=>{
+    const b=e.target.closest('button');if(!b)return;
+    document.querySelectorAll('#'+id+' button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');st[key]=b.dataset.v;if(cb)cb();});}
+  seg('scopeSeg','scope',()=>{fillDest();});
+  st.basis='nos';
+  seg('basisSeg','basis',()=>{
+    document.getElementById('basisnote').textContent =
+      (st.basis==='nos'?'new lines: rate × quantity':'new lines: rate × billable weight × quantity')+
+      ' · each line can be changed individually';
+  });
+  document.getElementById('applyall').addEventListener('click',()=>{
+    document.querySelectorAll('.linerow .bseg').forEach(seg=>{
+      seg.dataset.basis=st.basis;
+      seg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.b===st.basis));
+      applyRowBasis(seg.closest('.linerow'));
+    });
+    recalc();
+  });
+  seg('lrSeg','lr',()=>{document.getElementById('manlrfld').style.display=st.lr==='manual'?'block':'none';});
+  seg('skind','skind',()=>{document.getElementById('sgstf').style.display=st.skind==='company'?'block':'none';});
+  seg('rkind','rkind',()=>{document.getElementById('rgstf').style.display=st.rkind==='company'?'block':'none';});
+  // chip groups
+  function chips(id,key,cb){document.getElementById(id).addEventListener('click',e=>{
+    const c=e.target.closest('.chip');if(!c||c.disabled)return;
+    document.querySelectorAll('#'+id+' .chip').forEach(x=>x.classList.remove('on'));
+    c.classList.add('on');st[key]=c.dataset.v;if(cb)cb();});}
+  chips('dtype','dtype',()=>{
+    document.getElementById('dreq').style.display=st.dtype==='DD'?'inline':'none';
+    updateAddrFoldSum();
+  });
+  chips('pay','pay',()=>{
+    document.getElementById('payhint').style.display=
+      (st.pay||'').startsWith('on_account')?'block':'none';
+    document.getElementById('payreq').style.display=st.pay?'none':'block';});
+  st.mode=null;
+
+  // ---------- Addresses: collapsed by default, expands on click ----------
+  // Most bookings never touch this, so it starts folded; it opens itself
+  // the moment there is something worth looking at — a saved address just
+  // got auto-filled, or the agent typed into it directly.
+  const addrCard=document.getElementById('addrCard');
+  function openAddrCard(){ addrCard.classList.add('open'); }
+  document.getElementById('addrFoldHead').addEventListener('click',()=>{
+    addrCard.classList.toggle('open');
+  });
+  function updateAddrFoldSum(){
+    const sum=document.getElementById('addrFoldSum');
+    const any=['paddr','daddr'].some(id=>document.getElementById(id).value.trim());
+    if(any) sum.textContent='Added';
+    else if(st.dtype==='DD') sum.textContent='Not added \u00b7 recommended for door delivery';
+    else sum.textContent='Not added \u00b7 optional';
+  }
+  ['paddr','daddr'].forEach(id=>document.getElementById(id).addEventListener('input',updateAddrFoldSum));
+  updateAddrFoldSum();
+
+  // destination options: branches (outstation) vs delivery lines (local)
+  const DEST={outstation:[],local:[]};
+  function fillDest(){
+    const sel=document.getElementById('tobranch');
+    sel.innerHTML='<option value="" selected disabled>'+(st.scope==='local'?'Select delivery line':'Select branch')+'</option>'+
+      DEST[st.scope].map(([c,l])=>`<option data-code="${c}">${l}</option>`).join('');
+    if(typeof tobRefresh==='function') tobRefresh();   // keep the search list in step
+  }
+  // payment has NO default: the agent must choose one (validated on save)
+  document.getElementById('tobranch').addEventListener('change',dropPointStillFits);
+
+  /* ---- type a name OR a number in any of the four fields ---- */
+  function autocomplete(inputId, side){
+    const inp=document.getElementById(inputId);
+    const box=document.getElementById('sug-'+inputId);
+    if(!inp||!box) return;
+    let timer=null, list=[], active=-1;
+    const close=()=>{box.classList.remove('open');active=-1;};
+    const draw=()=>{
+      box.innerHTML = list.length
+        ? list.map((r,i)=>`<div class="it ${i===active?'on':''}" data-i="${i}">
+            <b>${(r.name||'—')}</b>
+            <span><span class="mono">${r.phone||'no number'}</span>${r.kind==='company'?' · company':''}${r.source?' · '+r.source:''}</span></div>`).join('')
+        : '<div class="none">No match — this will be saved as a new customer</div>';
+      box.classList.add('open');
+    };
+    const pick=async (r)=>{
+      close();
+      const nameId = side==='s' ? 'snam' : 'rnam';
+      const mobId  = side==='s' ? 'smob' : 'rmob';
+      if(r.phone) document.getElementById(mobId).value=r.phone;
+      if(r.name)  document.getElementById(nameId).value=r.name;
+      document.getElementById(mobId).classList.remove('err');
+      document.getElementById(nameId).classList.remove('err');
+      if(r.kind==='company'){
+        const btn=document.querySelector('#'+(side==='s'?'skind':'rkind')+' button[data-v="company"]');
+        if(btn && !btn.classList.contains('on')) btn.click();
+        const g=document.getElementById(side==='s'?'sgst':'rgst');
+        if(g && r.gstin && !g.value.trim()) g.value=r.gstin;
+      }
+      // pull the saved addresses for that number
+      if(r.phone) document.getElementById(mobId).dispatchEvent(new Event('change'));
+    };
+    inp.addEventListener('input',()=>{
+      clearTimeout(timer); active=-1;
+      const q=inp.value.trim();
+      if(q.length<2){ close(); return; }
+      timer=setTimeout(async ()=>{
+        try{ list=await window.N2K.searchParties(q); }catch(e){ list=[]; }
+        draw();
+      },280);
+    });
+    inp.addEventListener('keydown',e=>{
+      if(!box.classList.contains('open')) return;
+      if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+        e.preventDefault();
+        active+=(e.key==='ArrowDown'?1:-1);
+        if(active<0) active=list.length-1;
+        if(active>=list.length) active=0;
+        draw();
+        const on=box.querySelector('.it.on'); if(on) on.scrollIntoView({block:'nearest'});
+      }else if(e.key==='Enter'){
+        if(list.length){ e.preventDefault(); pick(list[active>=0?active:0]); }
+      }else if(e.key==='Escape'){ close(); }
+    });
+    box.addEventListener('mousedown',e=>{
+      const it=e.target.closest('.it'); if(!it)return;
+      e.preventDefault(); pick(list[+it.dataset.i]);
+    });
+    inp.addEventListener('blur',()=>setTimeout(close,150));
+  }
+  ['smob','snam'].forEach(id=>autocomplete(id,'s'));
+  ['rmob','rnam'].forEach(id=>autocomplete(id,'r'));
+
+  /* ---- drop point first: it decides the destination ----------------------
+     Booking starts from where the goods must be handed over. The drop point
+     carries its line and its hub, so choosing one fills in "To (destination)"
+     and sets Outstation/Local automatically.
+
+     Local vs outstation matters here: for a local shipment the destination list
+     holds LINES, for an outstation one it holds BRANCHES. So a drop point in
+     the agent's own hub selects its line; anywhere else selects the hub.
+
+     Free typing still works. Type a drop point nobody has registered and the
+     destination simply stays empty for the agent to choose by hand — exactly
+     as before, so no booking is ever blocked waiting on admin.
+     --------------------------------------------------------------------- */
+  const dpEsc=v=>String(v==null?'':v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  let DROPS=[], dpList=[], dpActive=-1, SETTING_DEST=false;
+  const MYHUB=(__me.branch||'').toUpperCase();
+  const dpIn=document.getElementById('dropinput'),
+        dpPanel=document.getElementById('dppanel'),
+        dpCombo=document.getElementById('dpcombo'),
+        dpHint=document.getElementById('drophint');
+
+  async function loadDrops(fresh){
+    try{
+      DROPS=await window.N2K.dropPointsAll(!!fresh);
+      if(!DROPS.length) dpHint.textContent='No destinations in Masters yet — type one and admin can add it later';
+    }catch(e){
+      DROPS=[]; dpHint.textContent='Could not load destinations — you can still type one';
+    }
+  }
+
+  function setScope(v){
+    if(st.scope===v) return;
+    st.scope=v;
+    document.querySelectorAll('#scopeSeg button').forEach(b=>
+      b.classList.toggle('on', b.dataset.v===v));
+    fillDest();
+  }
+
+  // point the destination combo at a code, without tripping the mismatch guard
+  function setDest(code){
+    const sel=document.getElementById('tobranch');
+    const opt=[...sel.options].find(o=>o.dataset&&o.dataset.code===code);
+    SETTING_DEST=true;
+    if(opt){ opt.selected=true; sel.dispatchEvent(new Event('change')); }
+    SETTING_DEST=false;
+    if(typeof syncTobInput==='function') syncTobInput();
+    document.getElementById('tobsearch').classList.remove('err');
+    return !!opt;
+  }
+
+  function dpApply(d){
+    st.dp=d;
+    dpIn.value=d.name;
+    dpCombo.classList.add('has');
+    dpClose();
+    dpIn.classList.remove('err');
+
+    const local = MYHUB && d.hubCode && d.hubCode.toUpperCase()===MYHUB;
+    setScope(local?'local':'outstation');
+    const target = local ? (d.lineCode||d.hubCode) : d.hubCode;
+    const ok = setDest(target);
+
+    dpHint.innerHTML = ok
+      ? `Going to <b>${dpEsc(d.hubName||d.hubCode)}</b> (<span class="mono">${dpEsc(d.hubCode)}</span>)`
+        + (d.lineName?` via <b>${dpEsc(d.lineName)}</b> line`:'')
+        + (local?' · local delivery':'') + ' — destination filled in below'
+      : `<span style="color:var(--red)">${dpEsc(d.hubCode)} is not in the destination list — choose it by hand below</span>`;
+  }
+
+  function dpClear(){
+    st.dp=null; dpIn.value=''; dpCombo.classList.remove('has'); dpClose();
+    dpHint.textContent='Start typing — the line and hub are filled in for you';
+  }
+
+  const dpText=d=>[d.name,d.landmark,d.lineName,d.lineCode,d.hubName,d.hubCode]
+    .filter(Boolean).join(' ').toLowerCase();
+
+  function dpOpen(q){
+    const t=(q||'').trim().toLowerCase();
+    dpList = t ? DROPS.filter(d=>dpText(d).includes(t)).slice(0,40) : DROPS.slice(0,40);
+    dpPanel.innerHTML = dpList.length
+      ? dpList.map((d,ix)=>`<div class="citem dpitem${ix===dpActive?' on':''}" data-ix="${ix}">
+          <div class="dpn">${dpEsc(d.name)}${d.landmark?` <span class="dpl">· ${dpEsc(d.landmark)}</span>`:''}</div>
+          <div class="dpm">${d.lineCode?`<span class="mono">${dpEsc(d.lineCode)}</span> ${dpEsc(d.lineName||'')} &nbsp;·&nbsp; `:''}
+            <b>${dpEsc(d.hubCode)}</b> ${dpEsc(d.hubName||'')}</div></div>`).join('')
+      : `<div class="cnone">No destination matches “${dpEsc(q)}” — you can still type it and pick the branch by hand</div>`;
+    dpPanel.classList.add('open');
+  }
+  function dpClose(){ dpPanel.classList.remove('open'); dpActive=-1; }
+
+  dpIn.addEventListener('focus',async ()=>{ if(!DROPS.length) await loadDrops(); dpOpen(dpIn.value); });
+  dpIn.addEventListener('input',()=>{
+    dpActive=-1; st.dp=null;                   // typing invalidates the last pick
+    dpCombo.classList.toggle('has',!!dpIn.value);
+    dpOpen(dpIn.value);
+  });
+  dpIn.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+      e.preventDefault();
+      if(!dpPanel.classList.contains('open')) dpOpen(dpIn.value);
+      dpActive += (e.key==='ArrowDown'?1:-1);
+      if(dpActive<0) dpActive=dpList.length-1;
+      if(dpActive>=dpList.length) dpActive=0;
+      dpOpen(dpIn.value);
+      const on=dpPanel.querySelector('.citem.on'); if(on) on.scrollIntoView({block:'nearest'});
+    }else if(e.key==='Enter'){
+      if(dpPanel.classList.contains('open') && dpList.length){
+        e.preventDefault(); dpApply(dpList[dpActive>=0?dpActive:0]);
+      }
+    }else if(e.key==='Escape'){ dpClose(); }
+  });
+  dpPanel.addEventListener('mousedown',e=>{
+    const it=e.target.closest('.dpitem'); if(!it) return;
+    e.preventDefault(); dpApply(dpList[+it.dataset.ix]);
+  });
+  document.getElementById('dpclear').addEventListener('click',()=>{ dpClear(); dpIn.focus(); });
+  document.addEventListener('mousedown',e=>{ if(!dpCombo.contains(e.target)) dpClose(); });
+
+  // If the agent overrides the destination by hand, a drop point belonging to a
+  // different hub would send the driver to the wrong place — so drop it.
+  function dropPointStillFits(){
+    if(SETTING_DEST || !st.dp) return;
+    const sel=document.getElementById('tobranch').selectedOptions[0];
+    const code=sel&&sel.dataset?sel.dataset.code:null;
+    if(!code) return;
+    const fits = code===st.dp.hubCode || code===st.dp.lineCode;
+    if(!fits){
+      const was=st.dp.name;
+      dpClear();
+      dpHint.innerHTML=`<span style="color:var(--red)">Destination branch changed to <b>${dpEsc(code)}</b> — “${dpEsc(was)}” does not belong there, so it was cleared. Choose a destination for ${dpEsc(code)}.</span>`;
+      dpIn.classList.add('err');
+    }
+  }
+
+  // loadDrops() is started with the rest of the form below, not on its own
+
+  /* ---- searchable destination picker (drives the hidden <select>) ---- */
+  const tobSel=document.getElementById('tobranch'),
+        tobIn=document.getElementById('tobsearch'),
+        tobPanel=document.getElementById('tobpanel'),
+        tobCombo=document.getElementById('tobcombo');
+  let tobItems=[], tobActive=-1, tobList=[];
+  function tobRefresh(){
+    tobItems=[...tobSel.options].filter(o=>o.dataset&&o.dataset.code)
+      .map(o=>({code:o.dataset.code,label:o.textContent.trim(),opt:o}));
+    syncTobInput();
+  }
+  function syncTobInput(){
+    const o=tobSel.selectedOptions[0];
+    const picked=o&&o.dataset&&o.dataset.code;
+    tobIn.value=picked?o.textContent.trim():'';
+    tobCombo.classList.toggle('has',!!picked);
+    tobIn.placeholder = st.scope==='local' ? 'Type delivery line name or code…' : 'Type branch name or code…';
+  }
+  function tobOpen(q){
+    const s=(q||'').trim().toLowerCase();
+    tobList = s ? tobItems.filter(i=>i.label.toLowerCase().includes(s)||i.code.toLowerCase().includes(s))
+                : tobItems.slice();
+    tobPanel.innerHTML = tobList.length
+      ? tobList.map((i,ix)=>`<div class="citem${ix===tobActive?' on':''}" data-code="${i.code}">${i.label}</div>`).join('')
+      : '<div class="cnone">No '+(st.scope==='local'?'line':'branch')+' matches “'+q+'”</div>';
+    tobPanel.classList.add('open');
+  }
+  function tobClose(){tobPanel.classList.remove('open');tobActive=-1;}
+  function tobPick(code){
+    const it=tobItems.find(i=>i.code===code); if(!it)return;
+    it.opt.selected=true;
+    tobSel.dispatchEvent(new Event('change'));
+    syncTobInput(); tobClose();
+    tobIn.classList.remove('err');
+  }
+  tobIn.addEventListener('focus',()=>tobOpen(''));
+  tobIn.addEventListener('input',()=>{tobActive=-1;tobCombo.classList.toggle('has',!!tobIn.value);tobOpen(tobIn.value);});
+  tobIn.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+      e.preventDefault();
+      if(!tobPanel.classList.contains('open'))tobOpen(tobIn.value);
+      tobActive += (e.key==='ArrowDown'?1:-1);
+      if(tobActive<0)tobActive=tobList.length-1;
+      if(tobActive>=tobList.length)tobActive=0;
+      tobOpen(tobIn.value);
+      const on=tobPanel.querySelector('.citem.on'); if(on)on.scrollIntoView({block:'nearest'});
+    }else if(e.key==='Enter'){
+      if(tobPanel.classList.contains('open')&&tobList.length){
+        e.preventDefault(); tobPick((tobList[tobActive>=0?tobActive:0]).code);
+      }
+    }else if(e.key==='Escape'){ tobClose(); }
+  });
+  tobPanel.addEventListener('mousedown',e=>{
+    const it=e.target.closest('.citem'); if(!it)return;
+    e.preventDefault(); tobPick(it.dataset.code);
+  });
+  document.getElementById('tobclear').addEventListener('click',()=>{
+    tobSel.selectedIndex=0; tobSel.dispatchEvent(new Event('change'));
+    syncTobInput(); tobIn.focus(); tobOpen('');
+  });
+  document.addEventListener('mousedown',e=>{ if(!tobCombo.contains(e.target)) {
+    tobClose(); syncTobInput();     // typed text that was not picked reverts
+  }});
+  /* The destination list, the drop-point list and the article list are fetched
+     together and the form revealed once, rather than each control filling in as
+     its own query returns. */
+  (async()=>{
+    const wrap=document.getElementById('form');
+    if(wrap) wrap.style.transition='opacity .15s';   // already hidden in the markup
+    try{
+      await Promise.all([
+        Promise.resolve(fillDest()),
+        Promise.resolve(tobRefresh()),
+        (typeof loadDrops==='function' ? Promise.resolve(loadDrops()) : Promise.resolve())
+      ]);
+    }catch(e){ console.error('booking load failed:',e); }
+    finally{ if(wrap) wrap.style.opacity='1'; }   // reveal even on failure
+  })();
+  (function(){
+    const br=__me.branch||null;
+    window.__branch=br; window.__branchName=__me.branchName||'';
+    const sub=document.getElementById('mesub');
+    const oc=document.getElementById('obcode'), on=document.getElementById('obname');
+    if(!br){
+      if(sub) sub.innerHTML='<span style="color:var(--red);font-weight:700">Your login has no branch set — ask admin to set it in Masters before booking.</span>';
+      if(oc) oc.textContent='—';
+      if(on) on.textContent='no branch assigned';
+      const sv=document.getElementById('save');
+      if(sv){sv.disabled=true;sv.textContent='Branch not set';}
+      return;
+    }
+    if(sub) sub.innerHTML='Booking from <span class="mono">'+br+'</span>'+(__me.branchName?' · '+__me.branchName:'');
+    if(oc) oc.textContent=br;
+    if(on) on.textContent=(__me.branchName?__me.branchName+' — ':'')+'your branch';
+  })();
+  (async ()=>{try{
+    const F=await window.N2K.facilities();
+    const f=F.byCode[window.__branch];
+    if(f){window.__branchName=f.name;
+      const on=document.getElementById('obname');
+      if(on) on.textContent=f.name+' — your branch';
+      const pc=document.getElementById('pcity');
+      if(pc && !pc.value) pc.value=f.city||'';
+      document.getElementById('mesub').innerHTML='Booking from <span class="mono">'+f.code+'</span> · '+f.name;}
+  }catch(e){}})();
+  // live masters from Supabase (fallback: the built-in lists above)
+  (async ()=>{try{
+    const F=await window.N2K.facilities();
+    DEST.outstation=F.list.filter(f=>(f.kind==='branch'||f.kind==='hub')&&f.code!==window.__branch)
+      .map(f=>[f.code,f.name+' ('+f.code+')']);
+    DEST.local=F.list.filter(f=>f.kind==='line').map(f=>[f.code,f.name+' ('+f.code+')']);
+    fillDest(); tobRefresh();
+    const arts=await window.N2K.articles();
+    if(arts.length){ARTICLES.length=0;arts.forEach(a=>ARTICLES.push(a.name));
+      document.querySelectorAll('.art').forEach(sel=>{const v=sel.value;
+        sel.innerHTML=ARTICLES.map(a=>'<option'+(a===v?' selected':'')+'>'+a+'</option>').join('');});}
+    console.log('masters: LIVE from database');
+  }catch(e){
+    document.getElementById('mesub').innerHTML='<span style="color:var(--red);font-weight:700">Cannot load branches from the server — check internet and reload.</span>';
+  }})();
+
+  // ---------- article lines ----------
+  const num=v=>parseFloat(v)||0;
+  const lines=document.getElementById('lines');
+  function addLine(pref={}){
+    const row=document.createElement('div');row.className='linerow';
+    row.innerHTML=`
+      <select class="art">${ARTICLES.map(a=>`<option ${a===pref.art?'selected':''}>${a}</option>`).join('')}</select>
+      <input class="qty" inputmode="numeric" value="${pref.qty??1}">
+      <input class="awt" inputmode="decimal" placeholder="0" value="${pref.awt??''}">
+      <input class="bwt" inputmode="decimal" value="${pref.bwt??1}">
+      <span class="bseg" data-basis="${pref.basis||st.basis}">
+        <button type="button" data-b="weight" class="${(pref.basis||st.basis)==='weight'?'on':''}">Wt</button>
+        <button type="button" data-b="nos" class="${(pref.basis||st.basis)==='nos'?'on':''}">Nos</button>
+      </span>
+      <input class="rate" inputmode="decimal" value="${pref.rate??0}">
+      <div class="tot">₹0</div>
+      <button class="del" title="Remove">×</button>`;
+    lines.appendChild(row);
+    row.querySelector('.del').addEventListener('click',()=>{if(lines.children.length>1){row.remove();recalc();}});
+    const seg=row.querySelector('.bseg');
+    seg.addEventListener('click',e=>{
+      const b=e.target.closest('button[data-b]'); if(!b)return;
+      seg.dataset.basis=b.dataset.b;
+      seg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+      applyRowBasis(row); recalc();
+    });
+    applyRowBasis(row);
+    // billable auto-follows actual weight unless agent edits billable directly
+    const awt=row.querySelector('.awt'),bwt=row.querySelector('.bwt');
+    let bTouched=false;
+    bwt.addEventListener('input',()=>{bTouched=true;recalc();});
+    awt.addEventListener('input',()=>{if(!bTouched){bwt.value=awt.value||1;}recalc();});
+    row.querySelectorAll('input,select').forEach(i=>i.addEventListener('input',recalc));
+    recalc();
+  }
+  document.addEventListener('input',e=>{
+    if(e.target.classList&&e.target.classList.contains('err')) e.target.classList.remove('err');
+  });
+  document.getElementById('addline').addEventListener('click',()=>addLine());
+  addLine(); // first row
+
+  // ---------- attach photo / video (optional, whole consignment) ----------
+  // Staged locally as plain File objects. Nothing touches the network until
+  // the booking itself has saved and a real LR number exists — the media
+  // just rides along in memory (with object-URL previews) until then.
+  (function(){
+    const MEDIA=[]; // {kind,file,url}
+    const MAX_BYTES=15*1024*1024, MAX_VIDEO_SEC=20;
+    const photoBtn=document.getElementById('photoBtn'), videoBtn=document.getElementById('videoBtn'),
+          photoInput=document.getElementById('photoInput'), videoInput=document.getElementById('videoInput'),
+          photoCnt=document.getElementById('photoCnt'), videoCnt=document.getElementById('videoCnt'),
+          thumbs=document.getElementById('thumbs'), amsg=document.getElementById('amsg');
+
+    function warn(msg){ amsg.textContent=msg; amsg.classList.add('show'); setTimeout(()=>amsg.classList.remove('show'),4000); }
+
+    function renderCounts(){
+      const p=MEDIA.filter(m=>m.kind==='photo').length, v=MEDIA.filter(m=>m.kind==='video').length;
+      photoCnt.textContent=p; photoCnt.classList.toggle('show',p>0);
+      videoCnt.textContent=v; videoCnt.classList.toggle('show',v>0);
+    }
+    function renderThumb(item){
+      const d=document.createElement('div'); d.className='thumb';
+      if(item.kind==='photo'){
+        d.innerHTML='<img src="'+item.url+'" alt="">';
+      }else{
+        d.innerHTML='<video src="'+item.url+'" muted></video>'+
+          '<div class="vidmark"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>';
+      }
+      const rm=document.createElement('button'); rm.className='rm'; rm.type='button'; rm.textContent='×';
+      rm.addEventListener('click',()=>{
+        const i=MEDIA.indexOf(item); if(i>-1) MEDIA.splice(i,1);
+        URL.revokeObjectURL(item.url); d.remove(); renderCounts();
+      });
+      d.appendChild(rm); thumbs.appendChild(d);
+    }
+    function addFile(file,kind){
+      if(file.size>MAX_BYTES){ warn((kind==='video'?'Video':'Photo')+' is over 15MB — pick a smaller file'); return; }
+      if(kind==='photo'){
+        const item={kind,file,url:URL.createObjectURL(file)};
+        MEDIA.push(item); renderThumb(item); renderCounts();
+        return;
+      }
+      // video: check length before accepting, so a weak connection never has
+      // to carry more than a short clip
+      const url=URL.createObjectURL(file);
+      const probe=document.createElement('video');
+      probe.preload='metadata';
+      probe.onloadedmetadata=()=>{
+        if(probe.duration>MAX_VIDEO_SEC+0.5){
+          warn('Video is '+Math.round(probe.duration)+'s — keep it under '+MAX_VIDEO_SEC+'s');
+          URL.revokeObjectURL(url); return;
+        }
+        const item={kind,file,url}; MEDIA.push(item); renderThumb(item); renderCounts();
+      };
+      probe.onerror=()=>{ warn('Could not read that video — try a different file'); URL.revokeObjectURL(url); };
+      probe.src=url;
+    }
+    photoBtn.addEventListener('click',()=>photoInput.click());
+    videoBtn.addEventListener('click',()=>videoInput.click());
+    photoInput.addEventListener('change',()=>{
+      [...photoInput.files].forEach(f=>addFile(f,'photo')); photoInput.value='';
+    });
+    videoInput.addEventListener('change',()=>{
+      if(videoInput.files[0]) addFile(videoInput.files[0],'video'); videoInput.value='';
+    });
+
+    // exposed so the save handler can upload after the booking itself exists
+    window.__bookingMediaStaged=()=>MEDIA;
+  })();
+
+  // ---------- totals ----------
+  function rowBasis(r){ const s=r.querySelector('.bseg'); return (s&&s.dataset.basis)||st.basis||'weight'; }
+  function applyRowBasis(r){
+    const nos=rowBasis(r)==='nos';
+    const bwt=r.querySelector('.bwt');
+    bwt.disabled=nos; bwt.style.opacity=nos?'.45':'1';
+    r.querySelector('.rate').title=nos?'₹ per article':'₹ per kg';
+  }
+  function recalc(){
+    let freight=0;
+    [...lines.children].forEach(r=>{
+      const q=num(r.querySelector('.qty').value)||0;
+      const t=(rowBasis(r)==='nos') ? q*num(r.querySelector('.rate').value)
+                                    : q*num(r.querySelector('.bwt').value)*num(r.querySelector('.rate').value);
+      r.querySelector('.tot').textContent='₹'+Math.round(t);
+      freight+=t;
+    });
+    const load=num(document.getElementById('tload').value);
+    const dock=num(document.getElementById('tdocket').value);
+    const grand=Math.round(freight+load+dock);
+    document.getElementById('tfreight').value='₹'+Math.round(freight);
+    document.getElementById('tgrand').textContent='₹'+grand;
+
+    return grand;
+  }
+  ['tload','tdocket'].forEach(id=>document.getElementById(id).addEventListener('input',recalc));
+
+  // ---------- saved addresses (auto-fetch by mobile) ----------
+
+  const FETCHED={p:null,d:null};   // snapshot of the last auto-fetched address per side
+  const FIELDS={p:['paddr','pcity','ppin','pland'],d:['daddr','dcity','dpin','dland']};
+  function snap(side){return FIELDS[side].map(id=>document.getElementById(id).value.trim()).join('|');}
+  function checkEdited(side){
+    const box=document.getElementById(side+'save');
+    const known=FETCHED[side]!==null;
+    box.classList.toggle('show',known && snap(side)!==FETCHED[side] && snap(side)!=='|||' );
+  }
+  function fillAddr(side,a){
+    const m=side==='p'?{addr:'paddr',city:'pcity',pin:'ppin',land:'pland'}:{addr:'daddr',city:'dcity',pin:'dpin',land:'dland'};
+    document.getElementById(m.addr).value=a.door;
+    document.getElementById(m.city).value=a.city;
+    document.getElementById(m.pin).value=a.pin;
+    document.getElementById(m.land).value=a.land;
+    FETCHED[side]=snap(side);
+    checkEdited(side);
+    if(typeof openAddrCard==='function') openAddrCard();
+    if(typeof updateAddrFoldSum==='function') updateAddrFoldSum();
+  }
+  ['p','d'].forEach(side=>FIELDS[side].forEach(id=>
+    document.getElementById(id).addEventListener('input',()=>checkEdited(side))));
+  function watchMobile(mobId,selId,side){
+    const mob=document.getElementById(mobId),sel=document.getElementById(selId);
+    const nameId = side==='p' ? 'snam' : 'rnam';
+    const gstId  = side==='p' ? 'sgst' : 'rgst';
+    const kindId = side==='p' ? 'skind': 'rkind';
+    const noteId = side==='p' ? 'sfound':'rfound';
+    let timer=null;
+    const run=async ()=>{
+      const ph=mob.value.trim();
+      const note=document.getElementById(noteId);
+      if(!/^[6-9]\d{9}$/.test(ph)){sel.style.display='none';if(note)note.style.display='none';return;}
+      let party;
+      try{ party=await window.N2K.partyByPhone(ph); }catch(e){ return; }
+      if(!party.found){sel.style.display='none';
+        if(note){note.textContent='New customer — details will be saved for next time';
+          note.style.color='var(--slate)';note.style.display='block';}
+        return;}
+      // name (only if the agent has not typed one)
+      const nm=document.getElementById(nameId);
+      if(party.name && !nm.value.trim()) nm.value=party.name;
+      // company + GSTIN
+      if(party.kind==='company'){
+        const btn=document.querySelector('#'+kindId+' button[data-v="company"]');
+        if(btn && !btn.classList.contains('on')) btn.click();
+        const g=document.getElementById(gstId);
+        if(party.gstin && !g.value.trim()) g.value=party.gstin;
+      }
+      // addresses
+      if(party.addresses.length){
+        sel.innerHTML='<option disabled>Saved addresses</option>'+
+          party.addresses.map((a,i)=>`<option value="${i}" ${a.def?'selected':''}>${a.label} — ${a.door}</option>`).join('');
+        sel.style.display='inline-block';
+        fillAddr(side,party.addresses.find(a=>a.def)||party.addresses[0]);
+        sel.onchange=()=>fillAddr(side,party.addresses[sel.value]);
+      }else sel.style.display='none';
+      if(note){note.textContent='✓ Repeat customer — details filled from '+(party.source||'records');
+        note.style.color='var(--green)';note.style.display='block';}
+    };
+    mob.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(run,350);});
+    mob.addEventListener('change',run);
+  }
+  watchMobile('smob','ssaved','p');
+  watchMobile('rmob','rsaved','d');
+
+  // ---------- prebooking fetch ----------
+  // ---------- invoices ----------
+  const invs=document.getElementById('invs');
+  function addInv(){
+    const row=document.createElement('div'); row.className='invrow';
+    row.innerHTML=`<input class="ino" placeholder="Invoice no.">
+      <input class="idt" type="date">
+      <input class="ival" inputmode="decimal" placeholder="0">
+      <input class="igst" inputmode="decimal" placeholder="0">
+      <input class="iewb mono" inputmode="numeric" maxlength="12" placeholder="12-digit EWB">
+      <button type="button" class="del" title="Remove">×</button>`;
+    invs.appendChild(row);
+    row.querySelector('.del').addEventListener('click',()=>{
+      if(invs.children.length>1) row.remove(); else row.querySelectorAll('input').forEach(i=>i.value='');
+    });
+  }
+  document.getElementById('addinv').addEventListener('click',addInv);
+  addInv();
+  function readInvoices(){
+    return [...invs.children].map(r=>({
+      invoice_no:r.querySelector('.ino').value.trim()||null,
+      invoice_date:r.querySelector('.idt').value||null,
+      invoice_value:parseFloat(r.querySelector('.ival').value)||null,
+      gst_value:parseFloat(r.querySelector('.igst').value)||null,
+      eway_bill_number:r.querySelector('.iewb').value.trim()||null
+    })).filter(r=>r.invoice_no||r.eway_bill_number||r.invoice_value||r.gst_value);
+  }
+
+  /* ---------- cancelling the consignment just booked ----------
+     Offered here because this is the moment it happens: the customer is still
+     at the counter and changes their mind. Every rule is enforced in the
+     database function, so this only collects the reason. ------------------- */
+  let LASTID=null;   // set when the booking saves
+
+  document.getElementById('canlr').addEventListener('click',async function(){
+    if(!LASTID) return;
+    const chk=await window.N2K.cancellable(LASTID);
+    if(!chk.ok){ alert(chk.why); return; }
+    const sel=document.getElementById('canwhy');
+    sel.innerHTML=window.N2K.CANCEL_REASONS.map(r=>`<option>${r}</option>`).join('');
+    document.getElementById('canbox').classList.add('on');
+    this.disabled=true;
+  });
+  document.getElementById('cankeep').addEventListener('click',()=>{
+    document.getElementById('canbox').classList.remove('on');
+    document.getElementById('canlr').disabled=false;
+  });
+  document.getElementById('cango').addEventListener('click',async function(){
+    if(!LASTID) return;
+    const why=document.getElementById('canwhy').value;
+    const note=document.getElementById('cannote').value.trim();
+    this.disabled=true; const t=this.textContent; this.textContent='Cancelling…';
+    try{
+      const no=await window.N2K.cancelBooking(LASTID, why+(note?' — '+note:''));
+      document.getElementById('canbox').innerHTML=
+        `<div style="text-align:center"><div class="cancelled">CANCELLED</div>
+         <p style="margin:0">${no} has been cancelled. It will not go on any vehicle.
+         The LR number stays in the register.</p></div>`;
+      document.getElementById('canlr').style.display='none';
+      ['printlr','sh-wa','sh-sms'].forEach(id=>{
+        const e=document.getElementById(id); if(e){ e.style.opacity='.4'; e.style.pointerEvents='none'; }
+      });
+    }catch(e){
+      alert('Not cancelled — '+(e.message||e));
+      this.disabled=false; this.textContent=t;
+    }
+  });
+
+  document.getElementById('printlr').addEventListener('click',async function(){
+    if(!window.__lastBooking){ window.print(); return; }
+    this.disabled=true; const t=this.textContent; this.textContent='Opening…';
+    try{ await window.N2K.printLR(window.__lastBooking); }catch(e){ alert(e.message); }
+    this.disabled=false; this.textContent=t;
+  });
+
+  // origin / destination as CODE · Full name (used in the summary and share text)
+  function routeParts(){
+    const o={code:window.__branch||'', name:window.__branchName||''};
+    const sel=document.getElementById('tobranch').selectedOptions[0];
+    const d={code:(sel&&sel.dataset)?sel.dataset.code||'':'',
+             name:sel?sel.textContent.replace(/\s*\([^)]*\)\s*$/,'').trim():''};
+    const fmt=x=>x.code&&x.name?x.code+' · '+x.name:(x.name||x.code||'—');
+    return {o,d,from:fmt(o),to:fmt(d)};
+  }
+
+  // ---------- validate + save ----------
+  function bad(id,cond){const el=document.getElementById(id);
+    el.classList.toggle('err',cond);
+    if(id==='tobranch'){const vi=document.getElementById('tobsearch'); if(vi)vi.classList.toggle('err',cond);}
+    const h=document.getElementById(id+'-h');if(h)h.classList.toggle('show',cond);
+    return cond;}
+  const MOB=/^[6-9]\d{9}$/;
+  const GST=/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i;
+  function checkLines(){
+    const errs=[];
+    [...lines.children].forEach((r,i)=>{
+      const n=i+1;
+      const art=r.querySelector('.art'), qty=r.querySelector('.qty'),
+            awt=r.querySelector('.awt'), bwt=r.querySelector('.bwt'), rate=r.querySelector('.rate');
+      const mark=(el,badv,msg)=>{el.classList.toggle('err',badv); if(badv)errs.push('Line '+n+': '+msg); return badv;};
+      mark(art,!art.value,'choose the article');
+      mark(qty,!(num(qty.value)>=1),'quantity must be 1 or more');
+      if(rowBasis(r)==='weight'){
+        mark(awt,!(num(awt.value)>0),'enter the actual weight in kg (weigh the item)');
+        mark(bwt,!(num(bwt.value)>0),'enter the billable weight in kg');
+      }else{ awt.classList.remove('err'); bwt.classList.remove('err'); }
+      mark(rate,!(num(rate.value)>0),'enter the rate per unit in ₹');
+    });
+    return errs;
+  }
+  function showErrors(errs){
+    const box=document.getElementById('vsum');
+    if(!errs.length){box.classList.remove('show');box.innerHTML='';return;}
+    box.innerHTML='Cannot save — '+errs.length+' item(s) need attention:<ul>'+
+      errs.map(e=>'<li>'+e+'</li>').join('')+'</ul>';
+    box.classList.add('show');
+    const first=document.querySelector('.err,.hint.show');
+    const target=document.querySelector('input.err,select.err')||first;
+    if(target){target.scrollIntoView({behavior:'smooth',block:'center'});
+      if(target.focus)setTimeout(()=>target.focus(),300);}
+  }
+  document.getElementById('save').addEventListener('click',async ()=>{
+    const grand=recalc();let fail=false;const errs=[];
+    const req=(id,cond,msg)=>{const b=bad(id,!cond); if(b)errs.push(msg); return b;};
+    fail|=req('tobranch',!!document.getElementById('tobranch').value,'Choose the destination branch or line');
+    fail|=req('smob',MOB.test(document.getElementById('smob').value),'Sender mobile must be 10 digits starting 6-9');
+    fail|=req('snam',document.getElementById('snam').value.trim().length>=2,'Enter the sender name');
+    fail|=req('rmob',MOB.test(document.getElementById('rmob').value),'Receiver mobile must be 10 digits starting 6-9');
+    fail|=req('rnam',document.getElementById('rnam').value.trim().length>=2,'Enter the receiver name');
+    /* GSTIN is NEVER required, company or not. Many of the client's company
+       customers simply do not have one recorded, and refusing the booking over
+       it stops real work at the counter. If it IS typed, it must be a valid
+       15-character GSTIN — a half-typed one on an LR is worse than none. */
+    [['sgst','Sender'],['rgst','Receiver']].forEach(([id,who])=>{
+      const g=document.getElementById(id); if(!g) return;
+      const v=g.value.trim();
+      const bad = v!=='' && !GST.test(v);
+      g.classList.toggle('err',bad);
+      if(bad){ fail=true; errs.push(who+' GSTIN is not a valid 15-character GSTIN — clear it or correct it'); }
+    });
+    // pincodes, when filled, must be 6 digits
+    [['ppin','Pickup pincode'],['dpin','Delivery pincode']].forEach(([id,label])=>{
+      const el=document.getElementById(id), v=el.value.trim();
+      const badp=v!=='' && !/^\d{6}$/.test(v);
+      el.classList.toggle('err',badp);
+      if(badp){fail=true;errs.push(label+' must be 6 digits');}});
+    // article lines
+    const lineErrs=checkLines();
+    if(lineErrs.length){fail=true;errs.push(...lineErrs);}
+    if(st.lr==='manual') fail|=req('manlr',!!document.getElementById('manlr').value.trim(),'Enter the manual LR number from the book');
+    // drop point is how the driver finds the consignee — always required
+    {
+      const dp=document.getElementById('dropinput');
+      const okdp=dp.value.trim().length>=2;
+      dp.classList.toggle('err',!okdp);
+      if(!okdp){ fail=true; errs.push('Choose or type the destination (where the driver hands it over)'); }
+    }
+    if(!st.pay){fail=true;errs.push('Choose the payment type');}
+    const INV=readInvoices();
+    if(grand>=50000){
+      const okEwb=INV.some(r=>/^\d{12}$/.test(String(r.eway_bill_number||'')));
+      document.getElementById('ewnote').classList.toggle('show',!okEwb);
+      if(!okEwb){ fail=true; errs.push('Goods value is ₹50,000 or more — enter a 12-digit E-Way Bill number in section 7'); }
+    }
+    if(fail){showErrors(errs);return;}
+    showErrors([]);
+    const v=id=>document.getElementById(id).value;
+    const sel=document.getElementById('tobranch').selectedOptions[0];
+    const payload={
+      manualLr: st.lr==='manual'?document.getElementById('manlr').value.trim().toUpperCase():null,
+      senderName:v('snam'),senderPhone:v('smob'),senderGstin:v('sgst'),senderKind:st.skind,
+      consignorNote:v('snote')||null, consigneeNote:v('rnote')||null,
+      destCode:sel.dataset.code,receiverName:v('rnam'),receiverPhone:v('rmob'),
+      receiverGstin:v('rgst'),receiverKind:st.rkind,
+      address:v('daddr'),city:v('dcity'),landmark:v('dland'),pincode:v('dpin'),
+      pickup:{addr:v('paddr'),city:v('pcity'),land:v('pland'),pin:v('ppin')},
+      scope:st.scope,dtype:st.dtype,pay:st.pay,mode:null,
+      freightBasis:st.basis,
+      dropPointName:(document.getElementById('dropinput').value||'').trim()||null,
+      dropPointId:(function(){
+        if(st.dp) return st.dp.id;
+        const t=(document.getElementById('dropinput').value||'').trim().toLowerCase();
+        const code=sel&&sel.dataset?sel.dataset.code:null;
+        const hit=DROPS.find(d=>d.name.toLowerCase()===t &&
+          (!code || d.hubCode===code || d.lineCode===code));
+        return hit?hit.id:null;})(),
+      invoices:INV,
+      eway:(INV.find(r=>r.eway_bill_number)||{}).eway_bill_number||null,
+      senderMakeDefault:!!(document.getElementById('psave-def')&&document.getElementById('psave-def').checked),
+      receiverMakeDefault:!!(document.getElementById('dsave-def')&&document.getElementById('dsave-def').checked),
+      lines:[...lines.children].map(r=>({article:r.querySelector('.art').value,
+        basis:rowBasis(r),
+        qty:num(r.querySelector('.qty').value)||1,uom:'fixed',
+        awt:num(r.querySelector('.awt').value)||null,
+        bwt:num(r.querySelector('.bwt').value)||1,
+        rate:num(r.querySelector('.rate').value)||0})),
+      loading:num(document.getElementById('tload').value),
+      docket:num(document.getElementById('tdocket').value),
+      freight:num(document.getElementById('tfreight').value.replace('₹',''))||0,
+      grand:grand,
+      pieces:[...lines.children].reduce((a,r)=>a+(parseInt(r.querySelector('.qty').value)||1),0),
+      weight:[...lines.children].reduce((a,r)=>a+(num(r.querySelector('.awt').value)||0),0)||null
+    };
+    if(!window.__branch){ alert('Cannot book: your login has no branch. Ask admin to set your branch in Masters.'); return; }
+    payload.originCode=window.__branch;
+    payload.bookedByPhone=__me.phone;
+    let lr;
+    const savebtn=document.getElementById('save');
+    savebtn.disabled=true;savebtn.textContent='Saving…';
+    try{
+      var res=await window.N2K.saveBooking(payload);
+      lr=res.lr;
+    }catch(e){
+      savebtn.disabled=false;savebtn.textContent='Save & generate LR';
+      const raw=(e.message||String(e));
+      let hint='Check internet / server and try again.';
+      if(/lr_sequences/i.test(raw)) hint='The LR number generator is blocked. Run database file 23 (fix_sequences) in Supabase, then retry.';
+      else if(/row-level security/i.test(raw)) hint='A database policy is blocking this write. Note the table name above and run the matching policy file.';
+      else if(/duplicate key/i.test(raw)) hint='That LR or booking already exists — reload the page and try again.';
+      else if(/not-null|violates not-null/i.test(raw)) hint='A required field is empty — check destination, sender and receiver.';
+      alert('NOT SAVED — '+raw+'\n\n'+hint);
+      console.error('Booking save failed:',e);
+      return;
+    }
+    savebtn.disabled=false;savebtn.textContent='Save & generate LR';
+    document.getElementById('lrout').textContent=lr;
+
+    // upload any staged photo/video now that a real booking id + LR exist.
+    // The booking itself is already saved — a media failure here (weak
+    // signal, etc.) must never look like the booking failed, so it only
+    // gets a quiet note in the summary line, not an alert.
+    (async ()=>{
+      const staged=(window.__bookingMediaStaged&&window.__bookingMediaStaged())||[];
+      if(!staged.length) return;
+      let okN=0, failN=0;
+      for(const item of staged){
+        try{
+          await window.N2K.bookingMedia.upload(res.id, lr, item.file, item.kind, __me.phone);
+          okN++;
+        }catch(e){ failN++; console.error('media upload failed:',e); }
+      }
+      const box=document.getElementById('oksum');
+      if(box) box.textContent += failN
+        ? ` · ${okN} of ${staged.length} attachment(s) uploaded — ${failN} failed (booking itself is safe; check your connection)`
+        : ` · ${okN} attachment(s) uploaded`;
+    })();
+    const to=document.getElementById('tobranch').selectedOptions[0].textContent;
+    const savedNotes=[];
+    if(document.getElementById('psave-new')?.checked && document.getElementById('psave').classList.contains('show'))
+      savedNotes.push('pickup address saved'+(document.getElementById('psave-def').checked?' as default':''));
+    if(document.getElementById('dsave-new')?.checked && document.getElementById('dsave').classList.contains('show'))
+      savedNotes.push('delivery address saved'+(document.getElementById('dsave-def').checked?' as default':''));
+    const R0=routeParts();
+    document.getElementById('oksum').textContent='✓ SAVED TO LIVE DATABASE · '+
+      `${R0.from} → ${R0.to} · ${lines.children.length} article line(s) · ${st.dtype} · ${({prepaid:'Paid',to_pay:'To Pay',on_account:'On Account',on_account_to_pay:'On Acct To Pay'})[st.pay]} · Grand total ₹${grand}`+(savedNotes.length?' · '+savedNotes.join(', '):'');
+    window.__lastBooking=res&&res.id?res.id:null;
+    // the same id lets this LR be cancelled from the panel above
+    LASTID=window.__lastBooking;
+    document.getElementById('canlr').style.display=LASTID?'':'none';
+    const msg=`N2K Logistics: Consignment ${lr} booked. ${R0.o.name||R0.o.code} → ${R0.d.name||R0.d.code}. ${lines.children.length} article line(s), total ₹${grand} (${({prepaid:'Paid',to_pay:'To Pay',on_account:'On Account',on_account_to_pay:'On Account To Pay'})[st.pay]}). Track: https://n2klogistics.netlify.app`;
+    const enc=encodeURIComponent(msg);
+    const sp=document.getElementById('smob').value, rp=document.getElementById('rmob').value;
+    // one WhatsApp button: opens with the message ready, agent picks the chat
+    document.getElementById('sh-wa').href='https://wa.me/?text='+enc;
+    document.getElementById('sh-sms').href='sms:+91'+rp+'?&body='+enc;
+    document.getElementById('form').style.display='none';
+    document.getElementById('ok').classList.add('show');
+    window.scrollTo({top:0});
+    // preview the real LR, straight from the saved record
+    (async ()=>{
+      const box=document.getElementById('lrdoc');
+      if(!box) return;
+      try{
+        const b=await window.N2K.lrData(window.__lastBooking);
+        box.innerHTML='<style>'+window.N2K.lrStyles+'</style>'+window.N2K.lrDoc(b,'CONSIGNOR COPY');
+      }catch(e){ box.innerHTML='<div style="padding:14px;color:var(--slate);font-size:13px">Saved. Use Print to take the LR copies.</div>'; }
+    })();
+  });
+</script>
+</body>
+</html>

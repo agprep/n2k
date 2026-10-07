@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2F4079">
+<title>N2K Logistics — Offline</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@800;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#2F4079;--ink:#1B2340;--bg:#F4F6FA;--slate:#6A7386;--line:#E4E8F0;
+    --display:'Archivo',sans-serif;--body:'Inter',sans-serif}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--body);background:var(--bg);color:var(--ink);min-height:100vh;
+    display:flex;align-items:center;justify-content:center;padding:24px;-webkit-font-smoothing:antialiased}
+  .card{max-width:360px;text-align:center;background:#fff;border:1px solid var(--line);border-radius:18px;
+    padding:34px 26px;box-shadow:0 6px 24px rgba(37,49,92,.08)}
+  .mark{width:56px;height:56px;border-radius:16px;background:var(--navy);margin:0 auto 18px;
+    display:flex;align-items:center;justify-content:center}
+  .mark svg{width:26px;height:26px;color:#fff}
+  h1{font-family:var(--display);font-weight:800;font-size:19px;letter-spacing:-.3px}
+  p{font-size:13.5px;color:var(--slate);margin-top:8px;line-height:1.55}
+  button{margin-top:20px;border:0;background:var(--navy);color:#fff;font-family:var(--body);font-weight:700;
+    font-size:14px;padding:12px 22px;border-radius:11px;cursor:pointer}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.58 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01"/>
+      </svg>
+    </div>
+    <h1>No connection</h1>
+    <p>N2K Logistics needs the internet to load your data — booking, dispatch, and delivery all run live.
+      Check your connection and try again.</p>
+    <button onclick="location.reload()">Retry</button>
+  </div>
+</body>
+</html>

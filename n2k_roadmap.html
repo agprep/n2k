@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2F4079">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="icon" href="icons/favicon-16.png" sizes="16x16">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="N2K">
+<title>N2K Logistics — Trip</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="n2k_db.js"></script>
+<script>
+/* If the Supabase library does not arrive — slow line, blocked CDN, captive
+   wifi — every page sits on "loading…" for ever with no explanation, because
+   each data call fails separately with "Cannot read properties of null". Say so
+   once, plainly, instead. */
+window.addEventListener('DOMContentLoaded',function(){
+  if (window.supabase) return;
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:#C0392B;'+
+    'color:#fff;padding:11px 16px;font:600 13.5px Inter,Arial,sans-serif;text-align:center';
+  d.innerHTML='No connection to the database \u2014 the page cannot load data. '+
+    'Check the internet connection and reload.';
+  document.body.insertBefore(d, document.body.firstChild);
+});
+</script>
+
+<style>
+  :root{--navy:#2F4079;--ink:#1B2340;--red:#C0392B;--green:#2E7D5B;--amber:#C77A26;
+    --bg:#F4F6FA;--card:#FFF;--tint:#EEF1F7;--tint2:#F8FAFC;--slate:#6A7386;--line:#E4E8F0;
+    --display:'Archivo',sans-serif;--body:'Inter',sans-serif;--mono:'IBM Plex Mono',monospace;
+    --shadow:0 1px 2px rgba(37,49,92,.05),0 6px 18px rgba(37,49,92,.05)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--body);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{text-decoration:none;color:inherit}.mono{font-family:var(--mono)}
+  .topbar{display:flex;align-items:center;gap:14px;padding:11px 24px;background:var(--card);border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:9px;font-family:var(--display);font-weight:900;color:var(--navy);font-size:18px}
+  .brand .blogo{height:26px;width:auto;display:block}
+  .brand .pin{position:relative;width:19px;height:25px}.brand .pin svg{width:100%;height:100%}
+  .brand .pin i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-style:normal;color:#fff;font-size:12px;font-weight:900;padding-bottom:4px}
+  .crumb{font-size:13.5px;color:var(--slate)}.crumb b{color:var(--ink)}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 24px 70px}
+  h1{font-family:var(--display);font-weight:800;font-size:23px;letter-spacing:-.4px}
+  .sub{font-size:13px;color:var(--slate);margin:3px 0 16px}
+  .msg{margin:0 0 14px;border-radius:11px;padding:11px 14px;font-size:13px;font-weight:600;display:none}
+  .msg.ok{display:block;background:rgba(46,125,91,.08);border:1.5px solid rgba(46,125,91,.35);color:var(--green)}
+  .msg.err{display:block;background:rgba(192,57,43,.08);border:1.5px solid rgba(192,57,43,.35);color:var(--red)}
+  .msg.warn{display:block;background:rgba(199,122,38,.09);border:1.5px solid rgba(199,122,38,.35);color:var(--amber)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+  .ch{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:13px 17px;border-bottom:1px solid var(--line)}
+  .ch h2{font-family:var(--display);font-weight:800;font-size:15.5px}
+  .ch .m{font-size:12px;color:var(--slate)}
+  .pad{padding:15px 17px}
+
+  .f{display:flex;flex-direction:column;gap:5px}
+  .f label{font-size:10px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.05em}
+  .f select,.f input{border:2px solid var(--line);border-radius:10px;padding:9px 11px;font-family:var(--body);font-size:13.5px;outline:0;background:#fff}
+  .f select:focus,.f input:focus{border-color:var(--navy)}
+  .f input.km{width:110px;text-align:right;font-family:var(--mono)}
+  /* align on the TOP of the row: aligning on the bottom meant anything taller
+     under one field pushed that field's input up out of line with the rest */
+  .crew{display:flex;gap:11px;flex-wrap:wrap;align-items:flex-start}
+
+  .lnpick{display:flex;gap:9px;flex-wrap:wrap;margin-top:4px}
+  .ln{border:2px solid var(--line);background:#fff;border-radius:12px;padding:9px 13px;cursor:pointer;text-align:left;font-family:var(--body)}
+  .ln.on{border-color:var(--navy);background:linear-gradient(180deg,rgba(47,64,121,.06),#fff)}
+  .ln.full{opacity:.55}
+  .srow.off{opacity:.5}
+  .srow input[type=checkbox]{width:17px;height:17px;accent-color:var(--navy)}
+  .ln b{display:block;font-size:13.5px}
+  .ln span{font-size:11.5px;color:var(--slate)}
+
+  .stoplist{border-top:1px solid var(--line)}
+  .srow{display:flex;align-items:center;gap:11px;padding:10px 17px;border-bottom:1px solid var(--line)}
+  .srow:last-child{border-bottom:0}
+  .srow .no{width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .srow .nm{flex:1;min-width:0}
+  .srow .nm b{font-size:13.5px}
+  .srow .nm span{display:block;font-size:11.5px;color:var(--slate)}
+  .srow .cnt{font-family:var(--mono);font-size:12px;color:var(--slate);white-space:nowrap}
+  .mv{display:flex;gap:4px}
+  .mv button{border:1.5px solid var(--line);background:#fff;border-radius:8px;width:30px;height:28px;cursor:pointer;font-size:13px;color:var(--navy)}
+  .mv button:disabled{opacity:.35;cursor:not-allowed}
+  /* LR-level rows, grouped under a stop label. Ordering happens on these
+     rows, not the stop group — two LRs at the same stop can be reordered
+     against each other. */
+  .stopgroup{border-top:1px solid var(--line)}
+  .stopgroup:first-child{border-top:0}
+  .stophead{display:flex;align-items:baseline;gap:8px;padding:8px 17px 4px;background:var(--tint2)}
+  .stophead b{font-size:11px;color:var(--navy);text-transform:uppercase;letter-spacing:.04em}
+  .stophead span{font-size:10.5px;color:var(--slate)}
+  .lrrow{display:flex;align-items:center;gap:11px;padding:9px 17px 9px 28px;border-bottom:1px solid var(--line)}
+  .lrrow:last-child{border-bottom:0}
+  .lrrow.off{opacity:.45}
+  .lrrow input[type=checkbox]{width:17px;height:17px;accent-color:var(--navy);flex-shrink:0}
+  .lrrow .no{width:23px;height:23px;border-radius:50%;background:var(--navy);color:#fff;font-weight:800;
+    font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .lrrow .nm{flex:1;min-width:0}
+  .lrrow .nm .lr{font-family:var(--mono);font-weight:700;color:var(--navy);font-size:11.5px;margin-right:7px}
+  .rettag{display:inline-block;background:var(--red);color:#fff;font-size:9px;font-weight:800;
+    padding:2px 7px;border-radius:999px;letter-spacing:.03em;margin-right:7px;vertical-align:middle}
+  .lrrow .nm b{font-size:13.5px}
+  .lrrow .nm span.addr{display:block;font-size:11.5px;color:var(--slate);margin-top:1px}
+  .lrrow .cnt{font-family:var(--mono);font-size:12px;color:var(--slate);white-space:nowrap}
+
+  .btn{border:0;border-radius:11px;font-family:var(--body);font-weight:700;font-size:14px;padding:11px 18px;cursor:pointer}
+  .btn.red{background:var(--red);color:#fff}
+  .btn.navy{background:var(--navy);color:#fff}
+  .btn.ghost{background:#fff;color:var(--navy);border:2px solid var(--line)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .bar{display:flex;gap:9px;align-items:center;padding:13px 17px;background:var(--tint2);flex-wrap:wrap}
+  .bar .n{font-size:12.5px;color:var(--slate);margin-right:auto}
+
+  .runrow{display:flex;align-items:center;gap:12px;padding:12px 17px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .runrow:last-child{border-bottom:0}
+  .runrow .tn{font-family:var(--mono);font-weight:600;font-size:13px}
+  .runrow .mid{flex:1;min-width:200px;font-size:12.5px;color:var(--slate)}
+  .pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px}
+  .pill.open{background:rgba(199,122,38,.13);color:var(--amber)}
+  .pill.red{background:rgba(192,57,43,.10);color:var(--red)}
+  .pill.done{background:rgba(46,125,91,.10);color:var(--green)}
+  /* load sheet check */
+  .ckwrap{position:fixed;inset:0;background:rgba(20,26,48,.55);display:none;z-index:60;
+    align-items:flex-start;justify-content:center;padding:24px 14px;overflow:auto}
+  .ckwrap.open{display:flex}
+  .ckbox{background:#fff;border-radius:16px;width:100%;max-width:760px;overflow:hidden;
+    box-shadow:0 22px 60px rgba(20,26,48,.3)}
+  .ckhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+    padding:15px 17px;border-bottom:1px solid var(--line)}
+  .ckhead h3{font-family:var(--display);font-weight:800;font-size:16px}
+  .ckhead p{font-size:12.5px;color:var(--slate);margin-top:2px}
+  .ckx{border:0;background:none;font-size:24px;line-height:1;color:var(--slate);cursor:pointer}
+  .ckbody{padding:6px 0;max-height:60vh;overflow:auto}
+  .ckfoot{display:flex;gap:9px;align-items:center;padding:12px 17px;border-top:1px solid var(--line)}
+  .ckstat{margin-right:auto;font-size:12.5px;font-weight:600;color:var(--slate)}
+  .ckrow{padding:11px 17px;border-bottom:1px solid var(--line)}
+  .ckrow:last-child{border-bottom:0}
+  .ckrow.held{background:#FBF0EF}
+  .ckrow.short{background:#FDF8F1}
+  .cktop{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+  .cklr{font-family:var(--mono);font-weight:700;font-size:13.5px}
+  .ckwho{font-size:12.5px;color:var(--slate)}
+  .ckpcs{font-family:var(--mono);font-size:12.5px;color:var(--slate);white-space:nowrap}
+  .ckacts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center}
+  .ckbtn{border:1.5px solid var(--line);background:#fff;border-radius:8px;padding:5px 11px;
+    font-family:var(--body);font-weight:700;font-size:12px;cursor:pointer;color:var(--slate)}
+  .ckbtn.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  .ckbtn.warn.on{border-color:var(--amber);background:var(--amber);color:#fff}
+  .ckbtn.stop.on{border-color:var(--red);background:var(--red);color:#fff}
+  .ckq{width:62px;border:1.5px solid var(--line);border-radius:8px;padding:5px 8px;
+    font-family:var(--mono);font-size:12.5px}
+  .cknote{flex:1;min-width:130px;border:1.5px solid var(--line);border-radius:8px;
+    padding:5px 9px;font-family:var(--body);font-size:12.5px}
+  .cktag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px}
+  .cktag.h{background:rgba(192,57,43,.12);color:var(--red)}
+  .cktag.s{background:rgba(199,122,38,.14);color:var(--amber)}
+  .pill.draft{background:rgba(199,122,38,.14);color:var(--amber)}
+  /* run rows: the stage is written in words and marked with a stripe, because
+     a small coloured pill on its own was being misread */
+  .r2{display:flex;gap:13px;padding:13px 17px;border-bottom:1px solid var(--line);
+    align-items:flex-start;flex-wrap:wrap}
+  .r2:last-child{border-bottom:0}
+  .r2.await{border-left:4px solid var(--amber);background:#FFFCF7}
+  .r2.ready{border-left:4px solid var(--green)}
+  .r2.shut{border-left:4px solid var(--line)}
+  .r2 .l{flex:1;min-width:250px}
+  .r2 .tn{font-family:var(--mono);font-weight:700;font-size:13.5px}
+  .r2 .det{font-size:12.5px;color:var(--slate);margin-top:2px;line-height:1.45}
+  .r2 .acts{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+  .stage{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    display:inline-flex;align-items:center;gap:5px;margin-bottom:3px}
+  .stage.await{color:var(--amber)}
+  .stage.ready{color:var(--green)}
+  .stage.shut{color:var(--slate)}
+  .stage .dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+  .r2 .short{font-size:11.5px;color:var(--red);font-weight:600;margin-top:3px}
+  /* The KM hint lives in the note line below the crew row, not under the input.
+     Putting it under the input made that one field taller than the other three
+     and pushed it out of line with them. */
+  .kmhint{font-size:11.5px;color:var(--slate);line-height:1.4}
+  .kmhint:not(:empty){display:block;margin-bottom:3px}
+  .kmhint b{color:var(--green)}
+  .kmhint.warn{color:var(--red)}
+  .empty{padding:26px 17px;text-align:center;color:var(--slate);font-size:13.5px}
+  .empty b{display:block;color:var(--ink);margin-bottom:4px}
+  @media (max-width:640px){ .crew{gap:8px} .f input.km{width:88px} }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="./"><img class="blogo" src="data:image/png;base64,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" alt="N2K Logistics"></a>
+  <span class="crumb">Internal · <b>Trip</b></span>
+</div>
+
+<style id="n2k-boot">.wrap{opacity:0}</style>
+<script>
+/* Revealed by the page once its data is in. This timer is the backstop: if the
+   page's own code fails before it gets there, the content still appears rather
+   than the user staring at nothing. */
+setTimeout(function(){
+  var w=document.querySelector('.wrap');
+  if(w && getComputedStyle(w).opacity==='0'){ w.style.transition='opacity .15s'; w.style.opacity='1'; }
+},6000);
+</script>
+<div class="wrap">
+  <h1>Trip</h1>
+  <p class="sub" id="sub">Build the day's run: vehicle, crew, opening KM, then arrange the stops in the order the driver will drive them.</p>
+  <div class="msg" id="msg"></div>
+  <div class="msg" id="warn"></div>
+
+  <div class="card" id="retcard" style="display:none">
+    <div class="ch"><h2>Returns awaiting pickup <span class="pill red" id="retcount"></span></h2>
+      <span class="m">Undelivered elsewhere, coming back to you \u2014 not yet on a vehicle</span></div>
+    <div id="retbody"></div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><h2>1 · Vehicle &amp; crew</h2>
+      <span class="m"><input type="date" id="date" style="border:1.5px solid var(--line);border-radius:8px;padding:5px 8px;font-family:var(--body);font-size:12.5px"></span></div>
+    <div class="pad">
+      <div class="crew">
+        <div class="f"><label>Vehicle</label><select id="veh"></select></div>
+        <div class="f"><label>Driver</label><select id="drv"></select></div>
+        <div class="f"><label>Helper</label><select id="hlp"></select></div>
+        <div class="f"><label>Opening KM <span style="color:var(--red)">*</span></label>
+          <input class="km" id="okm" inputmode="numeric" placeholder="odometer">
+          <div class="kmhint" id="okmhint"></div></div>
+      </div>
+      <div class="m" style="font-size:11.5px;color:var(--slate);margin-top:8px">
+        Closing KM and diesel are entered on the <b>Delivery</b> screen when the vehicle returns.
+        <span id="busynote" style="display:block;color:var(--amber);font-weight:600;margin-top:3px"></span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><h2>2 · Which lines is this vehicle covering?</h2><span class="m" id="lnm">loading…</span></div>
+    <div class="pad"><div class="lnpick" id="lines"></div></div>
+  </div>
+
+  <div class="card" id="stopcard" style="display:none">
+    <div class="ch"><h2>3 · Stop order</h2>
+      <span class="m">Untick any LR that goes on a <b>different vehicle</b>, then arrange the order with ↑ ↓</span></div>
+    <div class="stoplist" id="stops"></div>
+    <div class="bar">
+      <span class="n" id="stopsum">—</span>
+      <button class="btn ghost" id="reset">Reset to master order</button>
+      <button class="btn red" id="create">Load Sheet</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><h2>Today's runs</h2><span class="m" id="runm"></span></div>
+    <div id="runs"><div class="empty">loading…</div></div>
+  </div>
+</div>
+
+<div class="ckwrap" id="ckwrap">
+  <div class="ckbox">
+    <div class="ckhead">
+      <div><h3 id="cktitle">Load Sheet</h3>
+        <p id="cksub">Check the goods against each LR. Confirm when the vehicle is loaded.</p></div>
+      <button class="ckx" id="ckclose" aria-label="Close">&times;</button>
+    </div>
+    <div class="ckbody" id="ckbody"></div>
+    <div class="ckfoot">
+      <span class="ckstat" id="ckstat"></span>
+      <button class="btn" id="ckprint">Print Load Sheet</button>
+      <button class="btn red" id="ckconfirm">Confirm &rarr; Trip Sheet</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const __me=window.N2K.requireRole(['admin','booking_agent']); if(!__me)throw new Error('redirect');
+  window.N2K.mountNav('roadmap');
+  const BR=__me.branch||null;
+  const el=id=>document.getElementById(id);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const rup=n=>'\u20B9'+Math.round(n||0).toLocaleString('en-IN');
+  const say=(k,t)=>{const m=el('msg');m.className='msg '+k;m.innerHTML=t;
+    if(k==='ok')setTimeout(()=>{m.className='msg';},7000);};
+  let LINES=[], PICKED=[], ROWS=[], CREW={vehicles:[],drivers:[],helpers:[]}, ASSIGNED={};
+
+  el('date').value=window.N2K.todayLocal();
+  if(!BR) el('sub').innerHTML='<span style="color:var(--red);font-weight:700">Your login has no branch — ask admin to set it in Masters.</span>';
+
+  let BUSY={vehicles:{},drivers:{},helpers:{}};
+  function fillSel(sel,list,none,busy){
+    const keep=sel.value;
+    sel.innerHTML='<option value="">'+none+'</option>'+
+      list.map(o=>{
+        const on=busy&&busy[o.id];
+        return `<option value="${o.id}" ${on?'disabled':''}>${esc(o.label)}${on?'  — out on '+on:''}</option>`;
+      }).join('');
+    if(keep && !(busy&&busy[keep])) sel.value=keep; else sel.value='';
+  }
+  function resetCrew(){
+    ['veh','drv','hlp'].forEach(id=>{ el(id).value=''; });
+    el('okm').value='';
+  }
+  async function loadCrew(){
+    try{
+      const [c,busy]=await Promise.all([
+        window.N2K.crewOptions(),
+        window.N2K.crewBusy(BR,el('date').value)]);
+      CREW=c; BUSY=busy;
+      fillSel(el('veh'),CREW.vehicles,'— select vehicle —',BUSY.vehicles);
+      fillSel(el('drv'),CREW.drivers,'— select driver —',BUSY.drivers);
+      fillSel(el('hlp'),CREW.helpers,'— helper (optional) —',BUSY.helpers);
+      const outn=Object.keys(BUSY.vehicles).length;
+      const note=document.getElementById('busynote');
+      if(note) note.textContent = outn ? outn+' vehicle(s) already out — shown greyed until the run is closed on Delivery' : '';
+      return true;
+    }catch(e){ say('err','Cannot load vehicles / drivers — '+e.message+' · <a href="#" id="retrycrew">retry</a>');
+      const r=document.getElementById('retrycrew');
+      if(r) r.addEventListener('click',ev=>{ev.preventDefault();loadCrew();});
+      return false; }
+  }
+  /* NOT started here. Every section used to launch itself the moment its own
+     code was reached, so each rendered whenever its own query happened to come
+     back — which is why the page arrived in pieces. They are all started
+     together at the foot of this file instead. */
+
+  /* ---------- lines with cargo ---------- */
+  async function loadLines(){
+    el('lines').innerHTML='<div class="empty">loading…</div>';
+    try{
+      [LINES,ASSIGNED]=await Promise.all([
+        window.N2K.linesWithCargo(BR,el('date').value),
+        window.N2K.assignedMap(BR,el('date').value)]);
+    }
+    catch(e){ el('lines').innerHTML='<div class="empty" style="color:var(--red)">'+esc(e.message)+'</div>'; return; }
+    el('lnm').textContent=LINES.length?LINES.length+' line(s) with cargo today':'nothing waiting';
+    el('lines').innerHTML = LINES.length ? LINES.map((l,i)=>{
+        const loadable=l.stops.reduce((a,s)=>a.concat(s.items.filter(x=>!ASSIGNED[x.booking_id])),[]);
+        const left=loadable.length;
+        const done=l.lrs-left;
+        // consignments coming back for another attempt, so the agent knows
+        // these are retries rather than fresh cargo
+        const retry=loadable.filter(x=>x.status==='delivery_failed').length;
+        return `<button class="ln ${PICKED.includes(i)?'on':''} ${left?'':'full'}" data-i="${i}">
+          <b>${esc(l.name)}</b>
+          <span>${l.code} · <b>${left} LR to load</b>${retry?' · <b style="color:var(--red)">'+retry+' undelivered</b>':''}${done?' · '+done+' on an open run':''}
+            · ${l.stops.length} stop(s)${l.collect?' · collect '+rup(l.collect):''}</span>
+        </button>`;}).join('')
+      : '<div class="empty"><b>No cargo to deliver today</b>Book a consignment first, or pick another date.</div>';
+    rebuildStops();
+  }
+  el('lines').addEventListener('click',e=>{
+    const b=e.target.closest('.ln'); if(!b)return;
+    const i=+b.dataset.i;
+    const at=PICKED.indexOf(i);
+    if(at>=0) PICKED.splice(at,1); else PICKED.push(i);   // order of ticking = order of lines
+    loadLines();
+  });
+
+  /* ---------- LR list, auto then adjustable ----------
+     One row per LR (consignee), not per stop — a stop with two LRs shows
+     both, each with its own tick and its own place in the order. The stop
+     name/landmark stays as a header purely for context; it groups whatever
+     is currently adjacent, so dragging one LR out of a stop's block simply
+     starts a second header for that same stop further down. */
+  function rebuildStops(){
+    ROWS=[];
+    PICKED.forEach(i=>{
+      const l=LINES[i];
+      l.stops.slice().sort((a,b)=>(a.seq-b.seq)||a.name.localeCompare(b.name))
+        .forEach(s=>{
+          s.items.filter(x=>!ASSIGNED[x.booking_id])   // skip what is already loaded
+            .slice().sort((a,b)=>String(a.booking_number).localeCompare(String(b.booking_number)))
+            .forEach(x=>{
+              ROWS.push({bookingId:x.booking_id, lr:x.booking_number, receiver:x.receiver_name,
+                address:x.receiver_address||'', pieces:x.total_pieces||0,
+                stopName:s.name, landmark:s.landmark, lineCode:l.code, lineName:l.name,
+                dropId:s.dropId, take:true,
+                isReturn:!!x.return_of_booking_id, returnOfLr:x.return_of_lr||null});
+            });
+        });
+    });
+    drawStops();
+  }
+  function drawStops(){
+    el('stopcard').style.display=ROWS.length?'block':'none';
+    if(!ROWS.length) return;
+    // group consecutive rows that share a stop, purely for the header — the
+    // up/down buttons below still operate on the flat ROWS order, so moving
+    // one LR out of its group's block simply starts a second header further
+    // down for that same stop.
+    let n=0;
+    const groups=[];
+    ROWS.forEach((r,i)=>{
+      if(r.take) n++;
+      const last=groups[groups.length-1];
+      if(!last || last.stopName!==r.stopName)
+        groups.push({stopName:r.stopName, landmark:r.landmark, lineName:r.lineName, rows:[]});
+      groups[groups.length-1].rows.push({r,i,seq:r.take?n:null});
+    });
+    el('stops').innerHTML = groups.map(g=>`
+      <div class="stopgroup">
+        <div class="stophead"><b>${esc(g.stopName)}</b>
+          <span>${esc(g.lineName)}${g.landmark?' \u00b7 '+esc(g.landmark):''}</span></div>
+        ${g.rows.map(({r,i,seq})=>`
+        <div class="lrrow ${r.take?'':'off'}">
+          <input type="checkbox" data-t="${i}" ${r.take?'checked':''} title="Include this LR on this vehicle">
+          <span class="no">${seq!=null?seq:'\u2014'}</span>
+          <span class="nm"><span class="lr">${esc(r.lr)}</span>${r.isReturn?`<span class="rettag" title="${r.returnOfLr?'Return of '+esc(r.returnOfLr):'Return to source'}">RETURN</span>`:''}<b>${esc(r.receiver||'\u2014')}</b>
+            ${r.address?'<span class="addr">'+esc(r.address.slice(0,54))+'</span>':''}</span>
+          <span class="cnt">${r.pieces} pcs</span>
+          <span class="mv">
+            <button data-m="up" data-i="${i}" ${i===0?'disabled':''} title="Move up">\u2191</button>
+            <button data-m="dn" data-i="${i}" ${i===ROWS.length-1?'disabled':''} title="Move down">\u2193</button>
+          </span></div>`).join('')}
+      </div>`).join('');
+    const take=ROWS.filter(r=>r.take);
+    const stopsUsed=new Set(take.map(r=>r.stopName)).size;
+    const pcs=take.reduce((a,r)=>a+r.pieces,0);
+    const off=ROWS.length-take.length;
+    el('stopsum').innerHTML='<b>'+take.length+'</b> LR on this vehicle \u00b7 '+stopsUsed+' stop(s) \u00b7 '+pcs+' pieces'+
+      (off?' <span style="color:var(--slate)">\u00b7 '+off+' left for another vehicle</span>':'');
+    el('create').disabled=!take.length;
+  }
+  el('stops').addEventListener('change',e=>{
+    const c=e.target.closest('input[type=checkbox][data-t]'); if(!c)return;
+    ROWS[+c.dataset.t].take=c.checked; drawStops();
+  });
+  el('stops').addEventListener('click',e=>{
+    const b=e.target.closest('button[data-m]'); if(!b)return;
+    const i=+b.dataset.i, j=b.dataset.m==='up'?i-1:i+1;
+    if(j<0||j>=ROWS.length)return;
+    const t=ROWS[i]; ROWS[i]=ROWS[j]; ROWS[j]=t;
+    drawStops();
+  });
+  el('reset').addEventListener('click',rebuildStops);
+  el('date').addEventListener('change',()=>{PICKED=[];resetCrew();loadCrew();loadLines();loadRuns();checkLeftovers();});
+
+  /* ---------- create the run ---------- */
+  el('create').addEventListener('click',async function(){
+    const btn=this;
+    if(!el('veh').value) return say('err','Choose the vehicle for this run.');
+    if(el('okm').value.trim()==='')
+      return say('err','Enter the opening KM from the odometer before creating the run.');
+    if(isNaN(parseInt(el('okm').value,10)) || parseInt(el('okm').value,10)<0)
+      return say('err','Opening KM must be a number.');
+    if(!el('drv').value) return say('err','Choose the driver for this run.');
+    if(BUSY.vehicles[el('veh').value])
+      return say('err','That vehicle is already out on '+BUSY.vehicles[el('veh').value]+'. Close that run on Delivery first, or pick another vehicle.');
+    if(BUSY.drivers[el('drv').value])
+      return say('err','That driver is already out on '+BUSY.drivers[el('drv').value]+'.');
+    if(el('hlp').value && BUSY.helpers[el('hlp').value])
+      return say('err','That helper is already out on '+BUSY.helpers[el('hlp').value]+'.');
+    btn.disabled=true; const t=btn.textContent; btn.textContent='Creating…';
+    try{
+      const take=ROWS.filter(r=>r.take);
+      if(!take.length) throw new Error('Tick at least one LR for this vehicle');
+      const bookingIds=[...new Set(take.map(r=>r.bookingId))];
+      // trip_stops only needs one row per stop (for its name/landmark/line) —
+      // the actual per-LR order travels separately in bookingSeq below
+      const seenStops=new Set(), stopsPayload=[];
+      take.forEach(r=>{
+        if(seenStops.has(r.stopName)) return;
+        seenStops.add(r.stopName);
+        stopsPayload.push({name:r.stopName, landmark:r.landmark, lineCode:r.lineCode, dropId:r.dropId});
+      });
+      const bookingSeq=take.map((r,idx)=>({bookingId:r.bookingId, seq:idx+1}));
+      const run=await window.N2K.createRun({
+        branchCode:BR,
+        vehicleId:el('veh').value, driverId:el('drv').value, helperId:el('hlp').value||null,
+        openKm:el('okm').value===''?null:parseInt(el('okm').value,10),
+        lineIds:PICKED.map(i=>LINES[i].id).filter(Boolean),
+        stops:stopsPayload, bookingIds, bookingSeq});
+      say('ok','Load Sheet <b>'+run.trip_number+'</b> created with '+take.length+' LR. '+
+        'Check the goods against each LR below, then confirm.');
+      PICKED=[]; resetCrew();
+      await Promise.all([loadCrew(),loadLines(),loadRuns(),checkLeftovers(),loadReturnsAwaiting()]);
+      openCheck(run.id, run.trip_number);
+    }catch(e){ say('err','NOT created — '+e.message); }
+    btn.disabled=false; btn.textContent=t;
+  });
+
+  /* ---------- today's runs ---------- */
+  async function loadRuns(){
+    try{
+      const runs=await window.N2K.runsFor(BR,el('date').value);
+      /* Three stages, each reading differently at a glance. The state is
+         written in words as well as colour, because a coloured pill alone was
+         being misread — and because the button that must NOT appear on a
+         confirmed run is the whole point of the fix. */
+      const awaiting = runs.filter(r=>!r.confirmed_at && !r.closed_at).length;
+      el('runm').textContent = runs.length
+        ? runs.length+' run(s)'+(awaiting?' \u00b7 '+awaiting+' awaiting check':'')
+        : '';
+
+      el('runs').innerHTML = runs.length ? runs.map(r=>{
+        const closed = !!r.closed_at, live = !!r.confirmed_at;
+        const cls   = closed ? 'shut' : (live ? 'ready' : 'await');
+        const when  = t => t ? new Date(t).toLocaleTimeString('en-IN',
+                          {hour:'2-digit',minute:'2-digit'}) : '';
+        const stage = closed
+          ? 'Closed \u00b7 '+(r.run_km??'\u2014')+' km'+(r.diesel_litres?' \u00b7 '+r.diesel_litres+' L':'')
+          : live
+            ? 'Trip sheet \u00b7 confirmed '+when(r.confirmed_at)
+            : 'Load sheet \u00b7 not yet checked';
+        const shorts = [];
+        if(r.short_sent) shorts.push(r.short_sent+' LR short \u2014 sent');
+        if(r.short_held) shorts.push(r.short_held+' LR held back at the branch');
+
+        return `<div class="r2 ${cls}">
+          <div class="l">
+            <div class="stage ${cls}"><span class="dot"></span>${stage}</div>
+            <div class="tn">${r.trip_number}</div>
+            <div class="det">${esc(r.vehicle||'no vehicle')} \u00b7 ${esc(r.driver||'no driver')}${
+              r.helper?' / '+esc(r.helper):''} \u00b7 ${r.stops} stops \u00b7 ${r.pieces} pcs${
+              r.lines_covered?' \u00b7 lines '+esc(r.lines_covered):''}<br>
+              Open KM ${r.open_km??'\u2014'}${r.close_km!=null?' \u2192 '+r.close_km:''}${
+              r.created_by_name?' \u00b7 by '+esc(r.created_by_name):''}</div>
+            ${shorts.length?'<div class="short">'+shorts.join(' \u00b7 ')+'</div>':''}
+          </div>
+          <div class="acts">
+            <button class="btn ${live?'':'ghost'} prt" data-id="${r.id}">Print ${live?'Trip':'Load'} Sheet</button>
+            ${live?`<button class="btn ghost dlr" data-id="${r.id}">Download</button>`
+                  :`<button class="btn red ckopen" data-id="${r.id}" data-no="${r.trip_number}">Check &amp; confirm \u2192</button>`}
+          </div>
+        </div>`;
+      }).join('')
+        : '<div class="empty"><b>No runs today</b>Pick the lines above and create one.</div>';
+    }catch(e){ el('runs').innerHTML='<div class="empty" style="color:var(--red)">'+esc(e.message)+'</div>'; }
+  }
+  el('runs').addEventListener('click',e=>{
+    const ck=e.target.closest('.ckopen');
+    if(ck){ openCheck(ck.dataset.id, ck.dataset.no); return; }
+    const dl=e.target.closest('.dlr'); if(dl){ printRun(dl.dataset.id,false); return; }
+    const b=e.target.closest('.prt'); if(!b)return; printRun(b.dataset.id);
+  });
+
+  /* ---------- unassigned warning ---------- */
+  async function checkLeftovers(){
+    try{
+      const left=await window.N2K.notOnAnyRun(BR,el('date').value);
+      const w=el('warn');
+      if(!left.length){ w.className='msg'; return; }
+      w.className='msg warn';
+      w.innerHTML='⚠ <b>'+left.length+' consignment(s) are not on any run today</b> — '+
+        left.slice(0,6).map(i=>i.booking_number).join(', ')+(left.length>6?' …':'')+
+        '. Add their line to a run before the vehicle leaves.';
+    }catch(e){}
+  }
+
+  /* Returns headed to THIS branch — created wherever the failed delivery
+     physically was, still sitting there until that branch loads it onto a
+     run. Purely informational: nothing here is actionable from this side
+     yet, since this branch doesn't have the goods to load. */
+  async function loadReturnsAwaiting(){
+    let rows=[];
+    try{ rows=await window.N2K.returnsAwaitingPickup(BR); }
+    catch(e){ console.warn('returns awaiting pickup unavailable',e.message); }
+    const card=el('retcard');
+    card.style.display=rows.length?'block':'none';
+    if(!rows.length) return;
+    el('retcount').textContent=rows.length;
+    el('retbody').innerHTML=rows.map(r=>`
+      <div class="srow">
+        <span class="no" style="background:var(--red)">\u21a9</span>
+        <span class="nm"><b>${esc(r.booking_number)}</b>
+          <span>${esc(r.receiver_name||'\u2014')} \u00b7 ${esc(r.consignor_note||'Return')}</span></span>
+        <span class="cnt">${r.total_pieces||''} pcs</span>
+        <span class="pill open">at ${esc(r.origin?r.origin.code:'\u2014')}</span>
+      </div>`).join('');
+  }
+
+  /* The opening KM is the vehicle's last closing reading. Filled in rather than
+     retyped, because a transposed digit here corrupts both the run distance and
+     the service-due-by-KM alert on the Dashboard. It stays editable: an
+     odometer can be replaced, or a run closed with the wrong figure. */
+  el('veh').addEventListener('change',async function(){
+    const h=el('okmhint'), inp=el('okm');
+    h.classList.remove('warn');
+    if(!this.value){ h.textContent=''; return; }
+    h.textContent='Checking last reading\u2026';
+    const last=await window.N2K.lastCloseKm(this.value);
+    if(!last){
+      h.textContent='No previous run for this vehicle \u2014 type the odometer reading.';
+      return;
+    }
+    // only fill an empty box, so a figure the agent already typed is respected
+    if(inp.value===''){ inp.value=last.km; }
+    const on=last.at?new Date(last.at).toLocaleDateString('en-IN'):'';
+    h.innerHTML='Last closed at <b>'+last.km+' km</b>'+(on?' on '+on:'')+
+      ' \u2014 change it if the odometer says otherwise.';
+  });
+
+  /* ---------- load sheet check ----------
+     Between building a run and dispatching it, the agent walks the goods and
+     checks them against each LR. Three outcomes:
+
+       all present   nothing recorded, it travels
+       short, send   the shortage travels WITH the consignment, so the delivery
+                     end knows before the customer opens it
+       short, hold   the LR comes off the vehicle and stays at the branch; it
+                     returns to the pool for the next run on its own, because
+                     assignedMap only counts LRs on OPEN runs
+
+     Confirming locks the run: it stops being a Load Sheet and becomes the Trip
+     Sheet, and the database refuses further changes to it. ------------------- */
+  let CK={trip:null,no:'',rows:[]};
+
+  async function openCheck(tripId,tripNo){
+    CK={trip:tripId,no:tripNo||'',rows:[]};
+    el('cktitle').textContent='Load Sheet \u2014 '+(tripNo||'');
+    el('ckstat').textContent='Loading\u2026';
+    el('ckwrap').classList.add('open');
+    document.body.style.overflow='hidden';
+    await drawCheck();
+  }
+  function closeCheck(){
+    el('ckwrap').classList.remove('open');
+    document.body.style.overflow='';
+    loadRuns();
+  }
+
+  async function drawCheck(){
+    try{ CK.rows=await window.N2K.loadSheet(CK.trip); }
+    catch(e){ el('ckbody').innerHTML='<div class="empty">Could not load \u2014 '+e.message+'</div>'; return; }
+
+    const held=CK.rows.filter(r=>r.action==='held').length;
+    const short=CK.rows.filter(r=>r.action==='sent').length;
+    const going=CK.rows.length-held;
+    el('ckstat').innerHTML=going+' LR going'+
+      (short?' \u00b7 <b style="color:var(--amber)">'+short+' short</b>':'')+
+      (held?' \u00b7 <b style="color:var(--red)">'+held+' held back</b>':'');
+
+    el('ckbody').innerHTML = CK.rows.length ? CK.rows.map(r=>{
+      const st=r.action||'ok';
+      return `<div class="ckrow ${st==='held'?'held':(st==='sent'?'short':'')}" data-b="${r.booking_id}">
+        <div class="cktop">
+          <div><span class="cklr">${esc(r.booking_number)}</span>
+            ${st==='held'?'<span class="cktag h">HELD BACK</span>':''}
+            ${st==='sent'?'<span class="cktag s">SHORT '+(r.short_qty||'?')+'</span>':''}
+            <div class="ckwho">${esc(r.receiver_name||'\u2014')}</div></div>
+          <div class="ckpcs">${r.pieces} pcs</div>
+        </div>
+        <div class="ckacts">
+          <button class="ckbtn ${st==='ok'?'on':''}" data-a="ok">All present</button>
+          <button class="ckbtn warn ${st==='sent'?'on':''}" data-a="sent">Short \u2014 send</button>
+          <button class="ckbtn stop ${st==='held'?'on':''}" data-a="held">Short \u2014 hold back</button>
+          ${st!=='ok'?`<input class="ckq" type="number" min="0" placeholder="short"
+              value="${r.short_qty==null?'':r.short_qty}" data-f="q">
+            <input class="cknote" placeholder="what is missing / why"
+              value="${esc(r.note||'')}" data-f="n">`:''}
+        </div></div>`;
+    }).join('') : '<div class="empty">Nothing on this run</div>';
+  }
+
+  el('ckbody').addEventListener('click',async e=>{
+    const b=e.target.closest('.ckbtn'); if(!b) return;
+    const row=b.closest('.ckrow'), bid=row.dataset.b, act=b.dataset.a;
+    const q=row.querySelector('[data-f="q"]'), n=row.querySelector('[data-f="n"]');
+    const qty=q&&q.value!==''?parseInt(q.value,10):null;
+    const note=n?n.value.trim():'';
+    b.disabled=true;
+    try{
+      if(act==='ok')        await window.N2K.loadClear(CK.trip,bid);
+      else if(act==='sent') await window.N2K.loadNoteShort(CK.trip,bid,qty,note);
+      else                  await window.N2K.loadHold(CK.trip,bid,qty,note);
+      await drawCheck();
+    }catch(err){
+      el('ckstat').innerHTML='<b style="color:var(--red)">'+(err.message||err)+'</b>';
+      console.error('shortage action failed:',err);
+      b.disabled=false;
+    }
+  });
+
+  // typing a quantity or note updates the record already made for that LR
+  el('ckbody').addEventListener('change',async e=>{
+    const f=e.target.closest('[data-f]'); if(!f) return;
+    const row=f.closest('.ckrow'), bid=row.dataset.b;
+    const cur=CK.rows.find(r=>r.booking_id===bid); if(!cur||!cur.action) return;
+    const q=row.querySelector('[data-f="q"]'), n=row.querySelector('[data-f="n"]');
+    const qty=q&&q.value!==''?parseInt(q.value,10):null;
+    const note=n?n.value.trim():'';
+    try{
+      if(cur.action==='held') await window.N2K.loadHold(CK.trip,bid,qty,note);
+      else                    await window.N2K.loadNoteShort(CK.trip,bid,qty,note);
+    }catch(err){ say('err',err.message); }
+  });
+
+  el('ckclose').addEventListener('click',closeCheck);
+  el('ckwrap').addEventListener('click',e=>{ if(e.target===el('ckwrap')) closeCheck(); });
+  el('ckprint').addEventListener('click',()=>printRun(CK.trip));
+
+  el('ckconfirm').addEventListener('click',async function(){
+    const held=CK.rows.filter(r=>r.action==='held').length;
+    const short=CK.rows.filter(r=>r.action==='sent').length;
+    let msg='Confirm this Load Sheet? It becomes the Trip Sheet and cannot be changed afterwards.';
+    if(held)  msg+='\n\n'+held+' LR held back \u2014 they stay at the branch and come up again on the next run.';
+    if(short) msg+='\n'+short+' LR travelling short \u2014 the shortage is noted for the delivery end.';
+    if(!confirm(msg)) return;
+    this.disabled=true; const t=this.textContent; this.textContent='Confirming\u2026';
+    try{
+      await window.N2K.loadConfirm(CK.trip);
+      say('ok','Trip Sheet <b>'+CK.no+'</b> confirmed. Printing\u2026');
+      el('ckwrap').classList.remove('open');
+      document.body.style.overflow='';
+      // redraw the list FIRST: printing immediately left the old state on
+      // screen behind the panel, which is what looked like a failure
+      await loadRuns();
+      printRun(CK.trip);
+    }catch(e){
+      // say() writes to the page BEHIND this panel, where nobody is looking,
+      // so the failure has to appear in the panel itself
+      el('ckstat').innerHTML='<b style="color:var(--red)">Not confirmed \u2014 '+
+        (e.message||e)+'</b>';
+      console.error('load_confirm failed:',e);
+    }
+    this.disabled=false; this.textContent=t;
+  });
+
+  /* ---------- printable sheet ----------
+     The template itself lives in n2k_db.js so Reports prints exactly the same
+     sheet. This is only the wrapper that reports an error to the page. */
+  async function printRun(tripId,auto){
+    try{ await window.N2K.openRunSheet(tripId,auto); }
+    catch(e){ say('err',e.message); }
+  }
+
+  /* Everything at once: the four queries go out together, and the page is
+     revealed only when all four have answered. One wait instead of four,
+     and no section pops in after the others. */
+  if(BR){
+    (async()=>{
+      const wrap=document.querySelector('.wrap');
+      if(wrap) wrap.style.transition='opacity .15s';   // already hidden in the markup
+      try{
+        await Promise.all([loadCrew(),loadLines(),loadRuns(),checkLeftovers(),loadReturnsAwaiting()]);
+      }catch(e){
+        console.error('road map load failed:',e);
+      }finally{
+        if(wrap) wrap.style.opacity='1';
+      }
+    })();
+  }
+</script>
+</body>
+</html>

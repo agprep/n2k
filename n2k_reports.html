@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2F4079">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="icon" href="icons/favicon-16.png" sizes="16x16">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="N2K">
+<title>N2K Logistics — Reports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#2F4079; --navy-800:#1E2950; --ink:#1B2340; --red:#C0392B; --green:#2E7D5B; --amber:#C77A26;
+    --bg:#F4F6FA; --card:#FFFFFF; --tint:#EEF1F7; --tint2:#F7F9FC; --slate:#6A7386; --line:#E4E8F0;
+    --display:'Archivo',sans-serif; --body:'Inter',sans-serif; --mono:'IBM Plex Mono',monospace;
+    --shadow:0 1px 2px rgba(37,49,92,.05),0 6px 18px rgba(37,49,92,.05);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--body);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{text-decoration:none;color:inherit}
+  .mono{font-family:var(--mono)}
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(244,246,250,.92);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:11px 22px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:9px;font-family:var(--display);font-weight:900;color:var(--navy);font-size:18px}
+  .brand .blogo{height:26px;width:auto;display:block}
+  .brand .pin{position:relative;width:19px;height:25px}
+  .brand .pin svg{width:100%;height:100%}
+  .brand .pin i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-style:normal;color:#fff;font-size:12px;font-weight:900;padding-bottom:4px}
+  .crumb{font-size:13.5px;color:var(--slate)} .crumb b{color:var(--ink)}
+  .topbar .right{margin-left:auto;display:flex;gap:12px}
+  .backlink{font-weight:600;font-size:13.5px;color:var(--navy)}
+
+  .wrap{max-width:1000px;margin:0 auto;padding:22px 20px 70px}
+  .pagehead{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:8px}
+  h1{font-family:var(--display);font-weight:800;font-size:23px;letter-spacing:-.4px}
+  .whobadge{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;
+    background:var(--card);border:1.5px solid var(--line);border-radius:999px;padding:7px 14px}
+  .whobadge .d{width:8px;height:8px;border-radius:50%;background:var(--green)}
+  .scopenote{display:none;font-size:12.5px;font-weight:600;color:var(--amber);background:rgba(199,122,38,.09);
+    border-radius:10px;padding:9px 13px;margin:8px 0 4px}
+  .scopenote.show{display:flex;align-items:center;gap:8px}
+
+  .demoas{margin:12px 0 18px;background:var(--card);border:1px dashed #C3CBDD;border-radius:12px;padding:11px 14px;
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:12.5px;color:var(--slate)}
+  .demoas b{color:var(--ink)}
+  .rolechip{border:2px solid var(--line);background:var(--card);border-radius:999px;padding:6px 13px;font-weight:600;
+    font-size:12.5px;cursor:pointer;font-family:var(--body);color:var(--slate)}
+  .rolechip.on{border-color:var(--navy);background:var(--navy);color:#fff}
+
+  .filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+  .chip{border:2px solid var(--line);background:var(--card);border-radius:999px;padding:7px 14px;font-weight:600;
+    font-size:13px;cursor:pointer;font-family:var(--body);color:var(--ink)}
+  .chip.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  select.brsel{border:2px solid var(--line);border-radius:10px;padding:8px 11px;font-family:var(--body);font-size:13.5px;background:var(--card);outline:0}
+  select.brsel:disabled{background:var(--tint);color:var(--slate)}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:18px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px 16px;box-shadow:var(--shadow)}
+  .kpi .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--slate);font-weight:500}
+  .kpi .v{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:-.8px;margin-top:6px}
+  .kpi .s{font-size:11.5px;color:var(--slate);margin-top:2px}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px}
+  .ph{padding:13px 18px;border-bottom:1px solid var(--line);font-family:var(--display);font-weight:800;font-size:15px}
+  table{width:100%;border-collapse:collapse}
+  th{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--slate);
+    font-weight:500;text-align:left;padding:10px 18px;border-bottom:1px solid var(--line)}
+  td{padding:11px 18px;border-bottom:1px solid var(--line);font-size:13.5px}
+  tr:last-child td{border-bottom:0}
+  td.r,th.r{text-align:right}
+  td .mono{font-size:12.5px}
+  .tot td{font-weight:800;background:var(--tint2)}
+  .lockrow td{color:var(--slate);font-style:italic;font-size:12.5px}
+  table.acct th,table.acct td{padding:7px 9px;font-size:12.5px;white-space:nowrap}
+  table.acct{min-width:1500px}
+  .lin{border:2px solid var(--line);border-radius:8px;padding:5px 7px;font-family:var(--body);
+    font-size:12.5px;outline:0;background:#fff}
+  .lin:focus{border-color:var(--navy)}
+  input.lin.num{width:66px;text-align:right;font-family:var(--mono)}
+  select.lin{max-width:130px}
+  .lin:disabled{background:var(--tint);color:var(--slate)}
+  .filters2{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;background:var(--card);
+    border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);margin-bottom:16px}
+  .filters2 .f{display:flex;flex-direction:column;gap:5px}
+  .filters2 label{font-size:10.5px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.05em}
+  .filters2 input,.filters2 select{border:2px solid var(--line);border-radius:10px;padding:9px 11px;
+    font-family:var(--body);font-size:13.5px;outline:0;background:#fff}
+  .filters2 input:focus,.filters2 select:focus{border-color:var(--navy)}
+  .presets{display:flex;gap:6px;flex-wrap:wrap}
+  .pchip{border:2px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;font-size:12.5px;
+    font-weight:600;cursor:pointer;font-family:var(--body);color:var(--slate)}
+  .pchip.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  .go2{border:0;border-radius:11px;background:var(--red);color:#fff;font-weight:700;font-size:14px;
+    padding:11px 20px;cursor:pointer;font-family:var(--body)}
+  .tabs2{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+  .tab2{border:2px solid var(--line);background:#fff;border-radius:10px;padding:9px 15px;font-weight:700;
+    font-size:13.5px;cursor:pointer;font-family:var(--body);color:var(--slate)}
+  .tab2.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  .toolbar{display:flex;gap:8px;align-items:center;margin-left:auto}
+  .tbtn{border:2px solid var(--line);background:#fff;border-radius:9px;padding:7px 12px;font-size:12.5px;
+    font-weight:700;color:var(--navy);cursor:pointer;font-family:var(--body)}
+  .kpi5{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .drill{cursor:pointer}
+  .drill:hover{background:var(--tint2)}
+  .printhead{display:none}
+  @media print{
+    @page{ size:A4 landscape; margin:9mm }
+    .n2knav,.filters2,.tabs2,.toolbar,.presets,.whobadge,.scopenote,#brwrap,.topbar{display:none!important}
+    body{background:#fff}
+    .wrap{max-width:none;padding:0}
+    .pagehead{display:none}
+    .printhead{display:flex!important;justify-content:space-between;align-items:flex-start;
+      border-bottom:1.5px solid #1B2340;padding-bottom:7px;margin-bottom:10px}
+    .printhead .ph-l{display:flex;gap:9px;align-items:center}
+    /* the logo carries the company name; the text wordmark it replaced is gone */
+    .printhead .ph-logo{height:32px;width:auto;display:block}
+    .printhead .ph-org{font-family:Archivo,sans-serif;font-weight:900;font-size:15pt;color:#2F4079;line-height:1}
+    .printhead .ph-rep{font-size:9pt;color:#1B2340;font-weight:700;margin-top:2px}
+    .printhead .ph-r{text-align:right;font-size:8.5pt;line-height:1.5}
+    .printhead .ph-dim{color:#6A7386}
+    .subttl{font-size:10pt;margin:8px 0 5px}
+    .kpi5{grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:9px}
+    .kpi{border:1px solid #C9CFDD;border-radius:5px;padding:5px 7px;box-shadow:none}
+    .kpi .k{font-size:6.5pt}.kpi .v{font-size:12pt}.kpi .s{font-size:6.5pt}
+    .panel{border:1px solid #1B2340;border-radius:0;box-shadow:none;overflow:visible!important;page-break-inside:auto}
+    .panel > div{overflow:visible!important}
+    table{font-size:6.8pt;width:100%;table-layout:auto}
+    td,th{white-space:normal;overflow-wrap:break-word;hyphens:none}
+    td.mono{font-size:6.5pt;letter-spacing:-.1px}
+    thead{display:table-header-group}
+    tfoot{display:table-footer-group}
+    th{padding:3px 3.5px;border-bottom:1px solid #1B2340;color:#333;letter-spacing:0}
+    td{padding:3px 3.5px;border-bottom:1px solid #E4E8F0}
+    tr{page-break-inside:avoid}
+    tr.tot td{font-weight:800;background:#F1F3F8}
+    .lrdet{display:none}
+    table.acctwide th:nth-child(4),table.acctwide td:nth-child(4),
+    table.acctwide th:nth-child(6),table.acctwide td:nth-child(6){display:none}
+    .tbtn,button{display:none!important}
+    a{text-decoration:none;color:inherit}
+  }
+  .subttl{font-family:var(--display);font-weight:800;font-size:16px;margin:22px 0 10px}
+  .sheethead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 18px;border-bottom:1px solid var(--line)}
+  .sheethead .t{font-family:var(--display);font-weight:800;font-size:15px}
+  .sheethead .m{font-size:12px;color:var(--slate)}
+  .autonote{font-size:11.5px;color:var(--green);font-weight:600}
+  .expin{width:84px;border:2px solid var(--line);border-radius:8px;padding:6px 8px;font-family:var(--mono);font-size:13px;text-align:right;outline:0}
+  .expin:focus{border-color:var(--navy)}
+  .neg{color:var(--red)} .pos{color:var(--green)}
+  .submitbar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;background:var(--tint2);flex-wrap:wrap}
+  .submitbar .note{font-size:12.5px;color:var(--slate)}
+  .sbtn{border:0;border-radius:11px;background:var(--red);color:#fff;font-weight:700;font-size:14.5px;padding:12px 22px;cursor:pointer;font-family:var(--body)}
+  .sbtn:disabled{background:var(--green);cursor:default}
+  .subrow{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line)}
+  .subrow:last-child{border-bottom:0}
+  .subrow .nm{flex:1;font-weight:700;font-size:14px}
+  .subrow .nm .mono{color:var(--slate);font-weight:500;font-size:12px}
+  .stat{font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px}
+  .stat.done{background:rgba(46,125,91,.10);color:var(--green)}
+  .stat.wait{background:rgba(199,122,38,.13);color:var(--amber)}
+  @media (max-width:720px){.kpis{grid-template-columns:repeat(2,1fr)}
+    th:nth-child(4),td:nth-child(4){display:none}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="n2k_db.js"></script>
+<script>
+/* If the Supabase library does not arrive — slow line, blocked CDN, captive
+   wifi — every page sits on "loading…" for ever with no explanation, because
+   each data call fails separately with "Cannot read properties of null". Say so
+   once, plainly, instead. */
+window.addEventListener('DOMContentLoaded',function(){
+  if (window.supabase) return;
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:#C0392B;'+
+    'color:#fff;padding:11px 16px;font:600 13.5px Inter,Arial,sans-serif;text-align:center';
+  d.innerHTML='No connection to the database \u2014 the page cannot load data. '+
+    'Check the internet connection and reload.';
+  document.body.insertBefore(d, document.body.firstChild);
+});
+</script>
+
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="index.html"><img class="blogo" src="data:image/png;base64,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" alt="N2K Logistics"></a>
+  <span class="crumb">Internal · <b>Reports</b></span>
+</div>
+
+<style id="n2k-boot">.wrap{opacity:0}</style>
+<script>
+/* Revealed by the page once its data is in. This timer is the backstop: if the
+   page's own code fails before it gets there, the content still appears rather
+   than the user staring at nothing. */
+setTimeout(function(){
+  var w=document.querySelector('.wrap');
+  if(w && getComputedStyle(w).opacity==='0'){ w.style.transition='opacity .15s'; w.style.opacity='1'; }
+},6000);
+</script>
+<div class="wrap">
+  <div class="printhead" id="printhead">
+    <div class="ph-l">
+      <img class="ph-logo" src="data:image/png;base64,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" alt="N2K Logistics">
+      <div><div class="ph-rep" id="ph-rep">Report</div></div>
+    </div>
+    <div class="ph-r">
+      <div id="ph-range">—</div><div id="ph-scope">—</div>
+      <div id="ph-gen" class="ph-dim">—</div>
+    </div>
+  </div>
+  <div class="pagehead">
+    <h1>Reports</h1>
+    <span class="whobadge"><span class="d"></span><span id="whoas">—</span></span>
+  </div>
+  <div class="scopenote" id="scopenote">🔒 <span id="scopetext"></span></div>
+
+  <div class="filters2" id="filterbar">
+    <div class="f"><label>From</label><input type="date" id="dfrom"></div>
+    <div class="f"><label>To</label><input type="date" id="dto"></div>
+    <div class="f"><label>Quick range</label>
+      <div class="presets" id="presets">
+        <button class="pchip on" data-p="today">Today</button>
+        <button class="pchip" data-p="yday">Yesterday</button>
+        <button class="pchip" data-p="week">This week</button>
+        <button class="pchip" data-p="month">This month</button>
+        <button class="pchip" data-p="lastmonth">Last month</button>
+      </div></div>
+    <div class="f" id="brwrap"><label>Branch</label><select id="brsel2"></select></div>
+    <button class="go2" id="apply">Show report</button>
+  </div>
+
+  <div class="kpi5" id="kpis"></div>
+
+  <div class="tabs2" id="tabs2"></div>
+  <div id="panel"></div>
+  <div id="extra"></div>
+</div>
+
+<script>
+  const __me=window.N2K.requireRole(['admin','booking_agent']); if(!__me)throw new Error('redirect');
+  window.N2K.mountNav('reports');
+  const ROLE=__me.role, MYBR=__me.branch||null;
+  const IS_ADMIN=ROLE==='admin';
+  const el=id=>document.getElementById(id);
+  const rup=n=>'₹'+Math.round(n||0).toLocaleString('en-IN');
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const kpi=(k,v,s)=>`<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s||''}</div></div>`;
+  const iso=d=>d.toISOString().slice(0,10);
+  let TAB = IS_ADMIN?'summary':(ROLE==='driver'?'trips':'summary');
+  let LAST={headers:[],rows:[],name:'n2k-report'};
+
+  // identity + scope
+  (function(){
+    el('whoas').textContent = IS_ADMIN?'Admin · all branches':('Booking branch · '+(MYBR||'—'));
+    if(!IS_ADMIN){ el('scopetext').textContent = ROLE==='booking_agent'
+        ? 'You can see '+(MYBR||'your branch')+' activity only.'
+        : 'You can see your own trips only.';
+      el('scopenote').classList.add('show'); el('brwrap').style.display='none'; }
+  })();
+
+  // date presets
+  function setRange(p){
+    const t=new Date(), f=new Date();
+    if(p==='today'){}
+    else if(p==='yday'){ f.setDate(f.getDate()-1); t.setDate(t.getDate()-1); }
+    else if(p==='week'){ f.setDate(f.getDate()-f.getDay()+(f.getDay()===0?-6:1)); }
+    else if(p==='month'){ f.setDate(1); }
+    else if(p==='lastmonth'){ f.setMonth(f.getMonth()-1,1); t.setDate(0); }
+    el('dfrom').value=iso(f); el('dto').value=iso(t);
+  }
+  setRange('today');
+  el('presets').addEventListener('click',e=>{
+    const c=e.target.closest('.pchip'); if(!c)return;
+    document.querySelectorAll('.pchip').forEach(x=>x.classList.remove('on'));
+    c.classList.add('on'); setRange(c.dataset.p); run();
+  });
+  ['dfrom','dto'].forEach(id=>el(id).addEventListener('change',()=>{
+    document.querySelectorAll('.pchip').forEach(x=>x.classList.remove('on')); run(); }));
+  el('apply').addEventListener('click',run);
+
+  // branch filter (admin)
+  (async ()=>{ if(!IS_ADMIN) return;
+    try{ const F=await window.N2K.facilities();
+      el('brsel2').innerHTML='<option value="">All branches</option>'+
+        F.list.filter(f=>f.kind!=='line').map(f=>`<option value="${f.code}">${esc(f.name)} (${f.code})</option>`).join('');
+      el('brsel2').addEventListener('change',run);
+    }catch(e){}
+  })();
+
+  // tabs per role
+  function drawTabs(){
+    const T = IS_ADMIN
+      ? [['summary','Consolidated'],['lrs','LR register'],['outstanding','Outstanding'],
+         ['perf','Delivery performance'],['lineprofit','Line profit'],
+         ['trip','Vehicle Log'],['roadmaps','Load / Trip sheets'],
+         ['account','Account Sheet'],['dayclose','Day close']]
+      : [['summary','My branch'],['lrs','LR register'],['outstanding','Outstanding'],
+         ['perf','Delivery performance'],['lineprofit','Line profit'],
+         ['trip','Vehicle Log'],['roadmaps','Load / Trip sheets'],
+         ['account','Account Sheet'],['today','Day close entry']];
+    el('tabs2').innerHTML=T.map(([k,t])=>`<button class="tab2 ${k===TAB?'on':''}" data-t="${k}">${t}</button>`).join('')+
+      `<span class="toolbar">
+        <button class="tbtn" id="csv">Export CSV</button>
+        <button class="tbtn" onclick="window.print()">Print</button></span>`;
+    el('csv').addEventListener('click',()=>{
+      if(!LAST.rows.length){alert('Nothing to export yet.');return;}
+      window.N2K.downloadCSV(LAST.name+'-'+el('dfrom').value+'-to-'+el('dto').value+'.csv',LAST.headers,LAST.rows);
+    });
+  }
+  el('tabs2').addEventListener('click',e=>{
+    const b=e.target.closest('.tab2'); if(!b)return;
+    TAB=b.dataset.t; drawTabs(); run();
+  });
+
+  const table=(headers,rows,foot,cls)=>`<div class="panel"><div style="overflow-x:auto">
+      <table class="${cls||''}"><thead><tr>${headers.map((h,i)=>`<th class="${i?'r':''}">${h}</th>`).join('')}</tr></thead>
+      <tbody>${rows.length?rows.map(r=>`<tr>${r.map((c,i)=>`<td class="${i?'r':''}">${c}</td>`).join('')}</tr>`).join('')
+        :`<tr><td colspan="${headers.length}" style="color:var(--slate)">No data in this range.</td></tr>`}
+      ${foot?`<tr class="tot">${foot.map((c,i)=>`<td class="${i?'r':''}">${c}</td>`).join('')}</tr>`:''}
+      </tbody></table></div></div>`;
+
+  const TABNAME={summary:IS_ADMIN?'Consolidated report':'Branch report',lrs:'LR register',
+    outstanding:'Outstanding To-Pay',perf:'Delivery performance',lineprofit:'Line profitability',
+    trip:'Vehicle Log',trips:'Vehicle Log',roadmaps:'Load / Trip sheets',
+    account:'Account Sheet',dayclose:'Day-close status',today:'Day close entry'};
+  function stampPrintHeader(from,to,br){
+    el('ph-rep').textContent=TABNAME[TAB]||'Report';
+    el('ph-range').textContent=(from===to)?('Date: '+from):('Period: '+from+'  to  '+to);
+    el('ph-scope').textContent = br ? ('Branch: '+br) : (IS_ADMIN?'All branches':'—');
+    el('ph-gen').textContent='Generated '+new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',
+      year:'numeric',hour:'2-digit',minute:'2-digit'})+' · '+(__me.name||'');
+  }
+  async function run(){
+    drawTabs();
+    const from=el('dfrom').value, to=el('dto').value;
+    const br = IS_ADMIN ? (el('brsel2').value||null) : MYBR;
+    stampPrintHeader(from,to,br);
+    el('panel').innerHTML='<div class="panel"><div style="padding:22px;color:var(--slate);font-size:13.5px">Loading…</div></div>';
+    el('extra').innerHTML='';
+    try{
+      if(TAB==='summary'){ await runSummary(from,to,br); }
+      else if(TAB==='lrs'){ await runLRs(from,to,br); }
+      else if(TAB==='outstanding'){ await runOutstanding(br); }
+      else if(TAB==='perf'){ await runPerf(from,to,br); }
+      else if(TAB==='lineprofit'){ await runLineProfit(from,to,br); }
+      else if(TAB==='roadmaps'){ await runRoadmaps(from,to,br); }
+      else if(TAB==='account'){ await runAccount(from,to,br); }
+      else if(TAB==='dayclose'){ await runDayClose(from,to); }
+      else if(TAB==='today'){ await runTodayEntry(); }
+    }catch(e){
+      el('panel').innerHTML='<div class="panel"><div style="padding:20px;color:var(--red);font-weight:600">'+esc(e.message)+'</div></div>';
+    }
+  }
+
+  // ---------- consolidated ----------
+  async function runSummary(from,to,br){
+    const rows=await window.N2K.rangeSummary(from,to,br);
+    const T=rows.reduce((a,r)=>({bookings:a.bookings+r.bookings,pieces:a.pieces+r.pieces,value:a.value+r.value,
+      delivered:a.delivered+r.delivered,pending:a.pending+r.pending,failed:a.failed+r.failed,
+      toCollect:a.toCollect+r.toCollect}),{bookings:0,pieces:0,value:0,delivered:0,pending:0,failed:0,toCollect:0});
+    el('kpis').innerHTML=kpi('Bookings',T.bookings,rows.length+' branch(es)')+kpi('Pieces',T.pieces)+
+      kpi('Booked value',rup(T.value))+kpi('Delivered',T.delivered,T.bookings?Math.round(T.delivered/T.bookings*100)+'%':'')+
+      kpi('Pending',T.pending)+kpi('To collect',rup(T.toCollect),'To Pay, not yet delivered');
+    const H=['Branch','Bookings','Pieces','Booked value','Delivered','Pending','Failed','To collect'];
+    const R=rows.map(r=>[`<b>${esc(r.name)}</b> <span class="mono" style="color:var(--slate)">${r.code}</span>`,
+      r.bookings,r.pieces,rup(r.value),r.delivered,r.pending,
+      r.failed?`<span style="color:var(--red);font-weight:700">${r.failed}</span>`:'—',rup(r.toCollect)]);
+    el('panel').innerHTML=`<div class="subttl">Consolidated — ${from} to ${to}</div>`+
+      table(H,R,['Total',T.bookings,T.pieces,rup(T.value),T.delivered,T.pending,T.failed,rup(T.toCollect)]);
+    LAST={headers:H,name:'consolidated',rows:rows.map(r=>[r.name+' ('+r.code+')',r.bookings,r.pieces,
+      Math.round(r.value),r.delivered,r.pending,r.failed,Math.round(r.toCollect)])};
+  }
+
+  // ---------- LR register: every booking, full detail ----------
+  const PAYL={prepaid:'Paid',to_pay:'To Pay',on_account:'On Account',on_account_to_pay:'On Acct To Pay'};
+  async function runLRs(from,to,br){
+    const rows=await window.N2K.bookingsRange(from,to,br);
+    /* Cancelled LRs are LISTED here — this is the register, the complete record
+       of every number issued, and a missing number is exactly what an auditor
+       asks about. But they are excluded from the money and piece totals, or the
+       register would contradict the Dashboard for the same day. */
+    const canx=rows.filter(r=>r.status==='cancelled').length;
+    const live=rows.filter(r=>r.status!=='cancelled');
+    const T=live.reduce((a,r)=>({pcs:a.pcs+(r.total_pieces||0),val:a.val+(parseFloat(r.grand_total)||0),
+      coll:a.coll+(r.collected||0),due:a.due+(r.to_collect||0),
+      del:a.del+(r.status==='delivered'?1:0),fail:a.fail+(r.status==='delivery_failed'?1:0)}),
+      {pcs:0,val:0,coll:0,due:0,del:0,fail:0});
+    el('kpis').innerHTML=kpi('Consignments',live.length,canx?canx+' cancelled, not counted':'')+
+      kpi('Pieces',T.pcs)+
+      kpi('Booked value',rup(T.val))+
+      kpi('Delivered',T.del,live.length?Math.round(T.del/live.length*100)+'%':'')+
+      kpi('Collected',rup(T.coll),'To Pay received')+kpi('Still to collect',rup(T.due));
+
+    const H=['LR','Date','From','To','Line / drop point','Consignor','Consignee','Phone','Address',
+             'Pcs','Basis','Freight','Loading','Docket','Grand total','Payment','Status','Delivered on',
+             'Received by','Collected','To collect','Invoice no.','E-Way Bill'];
+    const R=rows.map(r=>[
+      `<span class="mono">${r.booking_number}</span>`,
+      new Date(r.created_at).toLocaleDateString('en-IN'),
+      r.origin?r.origin.code:'—', r.dest?r.dest.code:'—',
+      esc(r.drop_point_name||'—'),
+      esc((r.customer&&r.customer.name)||'—'), esc(r.receiver_name||'—'),
+      esc(r.receiver_phone||''), esc((r.receiver_address||'').slice(0,34)),
+      r.total_pieces||'', (r.freight_basis==='nos'?'Nos':'Weight'),
+      rup(r.freight_total), rup(r.total_loading_charges), rup(r.docket_charges),
+      `<b>${rup(r.grand_total)}</b>`,
+      PAYL[r.payment_type]||'—',
+      r.status==='cancelled'
+        ? `<b style="color:var(--red)">CANCELLED</b>${r.cancel_reason?'<div style="font-size:10.5px;color:var(--slate)">'+esc(r.cancel_reason)+'</div>':''}`
+        : `<span style="color:${r.status==='delivered'?'var(--green)':r.status==='delivery_failed'?'var(--red)':'inherit'}">${String(r.status||'').replace(/_/g,' ')}</span>`,
+      r.delivered_at?new Date(r.delivered_at).toLocaleDateString('en-IN'):'—',
+      esc(r.received_by||'—'),
+      r.collected?rup(r.collected):'—',
+      r.to_collect?`<span style="color:var(--red);font-weight:700">${rup(r.to_collect)}</span>`:'—',
+      esc(r.invoice_nos||'—'), esc(r.eway_bills||'—')
+    ]);
+    // action column, on screen only
+    const HH=H.concat(['']);
+    const RR=R.map((row,i)=>row.concat([`<button class="tbtn lrp" data-id="${rows[i].id}">Print LR</button>`]));
+    el('panel').innerHTML=`<div class="subttl">LR register — ${from} to ${to}${br?' · '+br:''} (${rows.length})</div>`+
+      table(HH,RR,rows.length?['Total','','','','','','','','',T.pcs,'','','','',rup(T.val),'','','','',
+        rup(T.coll),rup(T.due),'','','']:null,'lrwide');
+    el('panel').querySelectorAll('.lrp').forEach(b=>b.addEventListener('click',async ()=>{
+      b.disabled=true; const t=b.textContent; b.textContent='…';
+      try{ await window.N2K.printLR(b.dataset.id); }catch(e){ alert(e.message); }
+      b.disabled=false; b.textContent=t;
+    }));
+
+    // CSV carries everything, unformatted
+    LAST={headers:H,name:'lr-register',rows:rows.map(r=>[
+      r.booking_number, new Date(r.created_at).toLocaleString('en-IN'),
+      r.origin?r.origin.code:'', r.dest?r.dest.code:'', r.drop_point_name||'',
+      (r.customer&&r.customer.name)||'', r.receiver_name||'', r.receiver_phone||'',
+      [r.receiver_address,r.receiver_city,r.receiver_pincode].filter(Boolean).join(', '),
+      r.total_pieces||0, (r.freight_basis==='nos'?'Nos':'Weight'),
+      Math.round(r.freight_total||0), Math.round(r.total_loading_charges||0),
+      Math.round(r.docket_charges||0), Math.round(r.grand_total||0),
+      PAYL[r.payment_type]||'', r.status||'',
+      r.delivered_at?new Date(r.delivered_at).toLocaleString('en-IN'):'',
+      r.received_by||'', Math.round(r.collected||0), Math.round(r.to_collect||0),
+      r.invoice_nos||'', r.eway_bills||''])};
+  }
+
+  // ---------- 1. OUTSTANDING To-Pay ----------
+  async function runOutstanding(br){
+    const d=await window.N2K.outstanding(br);
+    const age=ms=>window.N2K.ageText(ms);
+    const over7=d.rows.filter(r=>['8-15 days','over 15 days'].includes(r._bucket));
+    const over7Amt=over7.reduce((a,r)=>a+r._amount,0);
+    el('kpis').innerHTML=
+      kpi('Total outstanding',rup(d.total),d.rows.length+' consignment(s)')+
+      kpi('Cash to collect',rup(d.cash),'To Pay / On Acct To Pay')+
+      kpi('On account (credit)',rup(d.credit),'billed to the customer')+
+      kpi('Over 7 days',rup(over7Amt),over7.length+' consignment(s)')+
+      d.byAge.slice(2).map(a=>kpi(a.bucket,rup(a.amount),a.count+' LR')).join('');
+
+    const H0=['Payment type','Consignments','Amount'];
+    const R0=d.byType.map(t=>[`<b>${esc(t.type)}</b>`,t.count,`<b>${rup(t.amount)}</b>`]);
+
+    const H1=['Branch','Consignments','Cash to collect','On account','Total','Oldest'];
+    const R1=d.byBranch.map(b=>[`<b>${esc(b.name)}</b> <span class="mono" style="color:var(--slate)">${b.code}</span>`,
+      b.count, rup(b.cash), rup(b.credit), `<b>${rup(b.amount)}</b>`, age(b.oldest)]);
+
+    const H2=['LR','Booked','Waiting','From → To','Consignor','Consignee','Phone','Pcs','Payment','Status','Amount'];
+    const R2=d.rows.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)).map(r=>[
+      `<span class="mono">${r.booking_number}</span>`,
+      new Date(r.created_at).toLocaleDateString('en-IN'),
+      `<span style="color:${['8-15 days','over 15 days'].includes(r._bucket)?'var(--red);font-weight:700':'inherit'}">${age(Date.now()-new Date(r.created_at).getTime())}</span>`,
+      `${r.origin?r.origin.code:'—'} → ${r.dest?r.dest.code:'—'}`,
+      esc((r.customer&&r.customer.name)||'—'), esc(r.receiver_name||'—'), esc(r.receiver_phone||''),
+      r.total_pieces||'',
+      `<span style="color:${r._credit?'var(--navy)':'inherit'}">${esc(r._payLabel)}</span>`,
+      String(r.status||'').replace(/_/g,' '),
+      `<b style="color:${r._credit?'var(--navy)':'var(--red)'}">${rup(r._amount)}</b>`]);
+
+    el('panel').innerHTML=`<div class="subttl">Outstanding — everything except Paid · as of now${br?' · '+br:''}</div>`+
+      table(H0,R0,R0.length?['Total',d.rows.length,rup(d.total)]:null)+
+      `<div class="subttl" style="margin-top:16px">By branch</div>`+
+      table(H1,R1,R1.length?['Total',d.rows.length,rup(d.cash),rup(d.credit),rup(d.total),'']:null)+
+      `<div class="subttl" style="margin-top:16px">Consignment by consignment — oldest first</div>`+
+      table(H2,R2)+
+      `<div style="font-size:12px;color:var(--slate);padding:9px 2px">
+        <b>Cash to collect</b> clears when the consignment is marked delivered.
+        <b>On account</b> stays listed until you bill the customer — the system does not yet record
+        payments received, so treat it as "billed, not settled".</div>`;
+
+    LAST={headers:H2,name:'outstanding',rows:d.rows.map(r=>[r.booking_number,
+      new Date(r.created_at).toLocaleDateString('en-IN'),r._bucket,
+      (r.origin?r.origin.code:'')+' -> '+(r.dest?r.dest.code:''),
+      (r.customer&&r.customer.name)||'',r.receiver_name||'',r.receiver_phone||'',
+      r.total_pieces||0,r._payLabel,r.status,Math.round(r._amount)])};
+  }
+
+  // ---------- 2. DELIVERY PERFORMANCE ----------
+  async function runPerf(from,to,br){
+    const d=await window.N2K.deliveryPerformance(from,to,br);
+    const hrs=h=>h==null?'—':(h<24?h.toFixed(1)+' h':(h/24).toFixed(1)+' d');
+    el('kpis').innerHTML=kpi('Consignments',d.total.booked)+
+      kpi('Delivered',d.total.delivered,d.total.rate+'% success')+
+      kpi('Failed',d.total.failed,d.total.booked?Math.round(d.total.failed/d.total.booked*100)+'%':'')+
+      kpi('Still pending',d.total.pending)+
+      kpi('Avg delivery time',hrs(d.total.hours),'booking to delivery');
+    const H=['Line / destination','Consignments','Delivered','Failed','Pending','Success','Avg time'];
+    const R=d.groups.map(g=>[
+      `<b>${esc(g.name)}</b> <span class="mono" style="color:var(--slate)">${g.code||''}</span>`,
+      g.booked, g.delivered,
+      g.failed?`<span style="color:var(--red);font-weight:700">${g.failed}</span>`:'—',
+      g.pending||'—',
+      `<span style="color:${g.rate>=80?'var(--green)':g.rate>=50?'var(--amber)':'var(--red)'};font-weight:700">${g.rate}%</span>`,
+      hrs(g.avgHours)]);
+    el('panel').innerHTML=`<div class="subttl">Delivery performance — ${from} to ${to}${br?' · '+br:''}</div>`+
+      table(H,R,R.length?['Total',d.total.booked,d.total.delivered,d.total.failed,d.total.pending,
+        d.total.rate+'%',hrs(d.total.hours)]:null);
+    LAST={headers:H,name:'delivery-performance',rows:d.groups.map(g=>[g.name+(g.code?' ('+g.code+')':''),
+      g.booked,g.delivered,g.failed,g.pending,g.rate+'%',g.avgHours==null?'':g.avgHours.toFixed(1)+' h'])};
+  }
+
+  // ---------- 3. LINE PROFITABILITY ----------
+  async function runLineProfit(from,to,br){
+    const d=await window.N2K.lineProfit(from,to,br);
+    const m=d.total.margin;
+    el('kpis').innerHTML=kpi('Income',rup(d.total.income))+
+      kpi('Running cost',rup(d.total.expense))+
+      kpi('Margin',(m<0?'−':'')+rup(Math.abs(m)),d.total.marginPct+'%')+
+      kpi('KM run',Math.round(d.total.km))+
+      kpi('Diesel',d.total.diesel?d.total.diesel.toFixed(1)+' L':'—',
+          d.total.diesel?(d.total.km/d.total.diesel).toFixed(1)+' km/L':'')+
+      kpi('Wages',rup(d.total.wages));
+    const H=['Line','Days run','Income','Fuel','Mamool','Misc','Wages','Total cost','Margin','Margin %','₹ per KM','km/L'];
+    const R=d.groups.map(g=>[
+      `<b>${esc(g.line)}</b>`, g.days, rup(g.income), rup(g.fuel), rup(g.mamool), rup(g.misc),
+      rup(g.wages), rup(g.expense),
+      `<b style="color:${g.margin<0?'var(--red)':'var(--green)'}">${g.margin<0?'−':''}${rup(Math.abs(g.margin))}</b>`,
+      `<span style="color:${g.marginPct<0?'var(--red)':'inherit'}">${g.marginPct}%</span>`,
+      g.perKm==null?'—':(g.perKm<0?'−':'')+rup(Math.abs(g.perKm)),
+      g.kmpl==null?'—':g.kmpl.toFixed(1)]);
+    el('panel').innerHTML=`<div class="subttl">Line profitability — ${from} to ${to}${br?' · '+br:''}</div>`+
+      table(H,R,R.length?['Total','',rup(d.total.income),rup(d.total.fuel),rup(d.total.mamool),
+        rup(d.total.misc),rup(d.total.wages),rup(d.total.expense),
+        (m<0?'−':'')+rup(Math.abs(m)),d.total.marginPct+'%','','']:null)+
+      (R.length?'':'<div style="font-size:12.5px;color:var(--slate);padding:10px 2px">No account sheets submitted in this period — branches enter these on Reports → Day close entry.</div>');
+    LAST={headers:H,name:'line-profit',rows:d.groups.map(g=>[g.line,g.days,Math.round(g.income),
+      Math.round(g.fuel),Math.round(g.mamool),Math.round(g.misc),Math.round(g.wages),
+      Math.round(g.expense),Math.round(g.margin),g.marginPct+'%',
+      g.perKm==null?'':Math.round(g.perKm),g.kmpl==null?'':g.kmpl.toFixed(1)])};
+  }
+
+  // ---------- trip sheet ----------
+  async function runTrips(from,to,br){
+    const trips = ROLE==='driver' ? await window.N2K.myTrips(__me.phone)
+                                  : await window.N2K.tripSheetRange(from,to,br);
+    const H=['Trip','Route','Vehicle','Driver / helper','Status','Pieces','Open KM','Close KM','Run KM','Diesel L','km/L'];
+    const R=trips.map(t=>[
+      `<span class="mono">${t.trip_number}</span>`,
+      `${t.origin?esc(t.origin.name):'—'} → ${t.dest?esc(t.dest.name):'—'}`,
+      t.vehicle?esc(t.vehicle.label):'—',
+      (t.driver&&t.driver.user?esc(t.driver.user.full_name):'—')+(t.helper?' / '+esc(t.helper.full_name):''),
+      String(t.status||'').replace(/_/g,' '),
+      t.pieces!=null?t.pieces:'—', t.open_km||'—', t.close_km||'—',
+      t.run_km!=null?t.run_km:'—', t.diesel_litres||'—', t.kmpl||'—']);
+    const tot=['Total','','','','',trips.reduce((a,t)=>a+(t.pieces||0),0),'','',
+      trips.reduce((a,t)=>a+(t.run_km||0),0),
+      trips.reduce((a,t)=>a+(parseFloat(t.diesel_litres)||0),0).toFixed(1),''];
+    el('panel').innerHTML=`<div class="subttl">Vehicle Log — ${from} to ${to}${br?' · '+br:''}</div>`+
+      table(H,R,R.length?tot:null)+
+      (trips.length?`<div style="font-size:12px;color:var(--slate);margin-top:8px">Click a trip row to see the LRs carried.</div>`:'');
+    LAST={headers:H,name:'vehicle-log',rows:trips.map(t=>[t.trip_number,
+      (t.origin?t.origin.name:'')+' -> '+(t.dest?t.dest.name:''),t.vehicle?t.vehicle.label:'',
+      (t.driver&&t.driver.user?t.driver.user.full_name:'')+(t.helper?' / '+t.helper.full_name:''),
+      t.status,t.pieces,t.open_km||'',t.close_km||'',t.run_km||'',t.diesel_litres||'',t.kmpl||''])};
+    // drill into a trip's LRs
+    const tb=el('panel').querySelector('tbody');
+    if(tb) tb.addEventListener('click',async e=>{
+      const tr=e.target.closest('tr'); if(!tr||tr.classList.contains('tot')||tr.classList.contains('lrdet'))return;
+      const idx=[...tb.querySelectorAll('tr')].filter(x=>!x.classList.contains('lrdet')).indexOf(tr);
+      const t=trips[idx]; if(!t)return;
+      const nxt=tr.nextElementSibling;
+      if(nxt&&nxt.classList.contains('lrdet')){ nxt.remove(); return; }
+      const det=document.createElement('tr'); det.className='lrdet';
+      det.innerHTML=`<td colspan="${H.length}" style="background:var(--tint2);padding:0">
+        <div style="padding:12px 16px;color:var(--slate);font-size:13px">Loading LRs…</div></td>`;
+      tr.after(det);
+      try{
+        const lrs=await window.N2K.tripLRs(t.id);
+        det.firstElementChild.innerHTML=lrs.length?`<table><thead><tr><th>LR</th><th>Consignee</th>
+            <th class="r">Pieces</th><th>Payment</th><th class="r">Amount</th><th>Status</th><th></th></tr></thead>
+          <tbody>${lrs.map(l=>`<tr><td class="mono">${l.booking_number}</td><td>${esc(l.receiver_name||'—')}</td>
+            <td class="r mono">${l.pieces}</td><td>${String(l.payment_type||'').replace(/_/g,' ')}</td>
+            <td class="r mono">${rup(l.grand_total)}</td><td>${String(l.current_status||'').replace(/_/g,' ')}</td>
+            <td><button class="tbtn lrp" data-id="${l.booking_id}">Print LR</button></td></tr>`).join('')}</tbody></table>`
+          :'<div style="padding:12px 16px;color:var(--slate);font-size:13px">No LRs on this trip.</div>';
+        det.querySelectorAll('.lrp').forEach(btn=>btn.addEventListener('click',async ev=>{
+          ev.stopPropagation(); btn.disabled=true;
+          try{ await window.N2K.printLR(btn.dataset.id); }catch(err){ alert(err.message); }
+          btn.disabled=false; }));
+      }catch(err){ det.firstElementChild.innerHTML='<div style="padding:12px 16px;color:var(--red)">'+esc(err.message)+'</div>'; }
+    });
+  }
+
+  // ---------- account sheet ----------
+  /* ---------- road map sheets ----------
+     A way to FIND a past run so its driver's sheet can be reprinted. The sheet
+     itself is built by N2K.openRunSheet in n2k_db.js — the very same template
+     the Road Map page prints, not a second copy that could drift from it. */
+  async function runRoadmaps(from,to,br){
+    const scope = IS_ADMIN ? (br||null) : MYBR;
+    const runs=await window.N2K.runsRange(scope,from,to);
+    const T=runs.reduce((a,r)=>({stops:a.stops+(r.stops||0),pcs:a.pcs+(r.pieces||0),
+      km:a.km+(parseFloat(r.run_km)||0),open:a.open+(r.closed_at?0:1)}),{stops:0,pcs:0,km:0,open:0});
+    el('kpis').innerHTML=kpi('Runs',runs.length,from===to?'on this date':'in this range')+
+      kpi('Stops',T.stops)+kpi('Pieces',T.pcs)+kpi('KM run',Math.round(T.km))+
+      kpi('Still open',T.open,T.open?'not yet closed':'all closed');
+
+    const H=['Run','Date','Vehicle','Driver / helper','Stops','Pieces','Run KM','Status','Sheet'];
+    const R=runs.map(r=>[
+      `<b class="mono">${esc(r.trip_number)}</b>${r.origin_code?' <span style="color:var(--slate)">'+esc(r.origin_code)+'</span>':''}`,
+      r.run_date,
+      esc(r.vehicle||'—')+(r.registration?' <span class="mono" style="color:var(--slate)">'+esc(r.registration)+'</span>':''),
+      esc(r.driver||'—')+(r.helper?' / '+esc(r.helper):''),
+      r.stops??'—', r.pieces??'—',
+      r.run_km!=null?Math.round(r.run_km):'<span style="color:var(--slate)">open</span>',
+      r.closed_at?'closed':'<span style="color:var(--green);font-weight:700">running</span>',
+      `<button class="tbtn rmp" data-id="${r.id}">Print</button>
+       <button class="tbtn rmd" data-id="${r.id}">Download</button>`]);
+
+    el('panel').innerHTML=`<div class="subttl">Load / Trip sheets — ${from} to ${to}${scope?' · '+scope:''}</div>`+
+      table(H,R,null,'')+
+      `<div style="font-size:11.5px;color:var(--slate);margin-top:7px">Reprints of finished runs are stamped
+        <b>RUN CLOSED</b> so they cannot be mistaken for a live sheet. Download opens the sheet without
+        printing, so it can be saved as a PDF.</div>`;
+
+    LAST={headers:['Run','Date','Vehicle','Registration','Driver','Helper','Stops','Pieces','Run KM','Diesel','Status'],
+      name:'road-map-sheets',
+      rows:runs.map(r=>[r.trip_number,r.run_date,r.vehicle,r.registration,r.driver,r.helper,
+        r.stops,r.pieces,r.run_km,r.diesel_litres,r.closed_at?'closed':'running'])};
+  }
+  // delegated so it survives every redraw of the table
+  document.addEventListener('click',async e=>{
+    const b=e.target.closest('.rmp,.rmd'); if(!b) return;
+    const wantPrint=b.classList.contains('rmp');
+    b.disabled=true; const t=b.textContent; b.textContent='Opening…';
+    try{ await window.N2K.openRunSheet(b.dataset.id, wantPrint?undefined:false); }
+    catch(err){ alert(err.message); }
+    b.disabled=false; b.textContent=t;
+  });
+
+  async function runAccount(from,to,br){
+    const rows=await window.N2K.accountSheetRange(from,to,br);
+    const num=v=>parseFloat(v)||0;
+    const T=rows.reduce((a,r)=>({
+      inc:a.inc+num(r.income), exp:a.exp+num(r.total_expense),
+      paid:a.paid+num(r.income_paid), topay:a.topay+num(r.income_to_pay),
+      onacc:a.onacc+num(r.income_on_acc), oatp:a.oatp+num(r.income_on_acc_to_pay),
+      cash:a.cash+num(r.cash_collectable),
+      fuel:a.fuel+num(r.fuel_expense), load:a.load+num(r.loading_expense),
+      maint:a.maint+num(r.maintenance_expense),
+      wage:a.wage+num(r.driver_wage)+num(r.helper_wage),
+      other:a.other+num(r.mamool_expense)+num(r.misc_expense),
+      km:a.km+num(r.run_km), lit:a.lit+num(r.diesel_litres),
+      loaded:a.loaded+(r.loaded_qty||0), del:a.del+(r.delivered_qty||0),
+      und:a.und+(r.undelivered_qty||0), undlr:a.undlr+(r.undelivered_lr_count||0)}),
+      {inc:0,exp:0,paid:0,topay:0,onacc:0,oatp:0,cash:0,
+       fuel:0,load:0,maint:0,wage:0,other:0,km:0,lit:0,loaded:0,del:0,und:0,undlr:0});
+    const margin=T.inc-T.exp;
+    const kmpl=T.lit>0?(T.km/T.lit).toFixed(2):null;
+    const netPer=T.del>0?(margin/T.del):null;
+
+    el('kpis').innerHTML=
+      kpi('Total income',rup(T.inc),
+          'Paid '+rup(T.paid)+' \u00b7 To Pay '+rup(T.topay)+' \u00b7 On Acc '+rup(T.onacc))+
+      kpi('Cash collectable',rup(T.cash),'On Account settles on the bill')+
+      kpi('Total expenses',rup(T.exp))+
+      kpi('Profit / loss',(margin<0?'\u2212':'')+rup(Math.abs(margin)),
+          T.inc?Math.round(margin/T.inc*100)+'% of income':'')+
+      kpi('Delivered',T.del,T.und?T.und+' undelivered ('+T.undlr+' LR)':'all delivered')+
+      kpi('KM run',Math.round(T.km),kmpl?kmpl+' km/L':'')+
+      kpi('Net per article',netPer==null?'\u2014':(netPer<0?'\u2212':'')+rup(Math.abs(netPer)),
+          'profit \u00f7 delivered');
+
+    /* Laid out the way the client keeps the sheet: identity, then quantities,
+       then income, then each expense head separately, then the per-article
+       figures at the end. */
+    const H=['Date','Branch','Line','Vehicle','Driver','Helper',
+             'Vehicle no.','Open KM','Close KM','Run KM','Diesel L','km/L',
+             'Loaded','Deliv.','Undeliv.','Und. LR',
+             'Paid','To Pay','On Acc','On Acc To Pay','Total income',
+             'Diesel \u20b9','Loading','Maint.','Wages','Misc','Total exp','Profit/Loss',
+             'Loading/article','Fuel/article','Op Ex/article','Net/article'];
+    const money=v=>rup(num(v));
+    const signed=v=>`<span style="color:${num(v)<0?'var(--red)':'var(--green)'};font-weight:700">${
+      num(v)<0?'\u2212':''}${rup(Math.abs(num(v)))}</span>`;
+
+    const R=rows.map(r=>[r.close_date, esc(r.branch_name||r.branch_code), esc(r.line||'\u2014'),
+      // the label alone is not enough: several vehicles share a model name
+      esc(r.vehicle||'\u2014')+(r.registration?'<div class="mono" style="font-size:10.5px;color:var(--slate)">'+esc(r.registration)+'</div>':''),
+      esc(r.driver||'\u2014'), esc(r.helper||'\u2014'),
+      esc(r.registration||'\u2014'),
+      r.open_km??'\u2014', r.close_km??'\u2014', r.run_km??'\u2014',
+      r.diesel_litres??'\u2014', r.km_per_litre??'\u2014',
+      r.loaded_qty, r.delivered_qty, r.undelivered_qty, r.undelivered_lr_count??0,
+      money(r.income_paid), money(r.income_to_pay), money(r.income_on_acc),
+      money(r.income_on_acc_to_pay), `<b>${money(r.income)}</b>`,
+      money(r.fuel_expense), money(r.loading_expense),
+      money(r.maintenance_expense), money(num(r.driver_wage)+num(r.helper_wage)),
+      money(num(r.mamool_expense)+num(r.misc_expense)),
+      money(r.total_expense), signed(r.margin),
+      r.loading_per_article==null?'\u2014':money(r.loading_per_article),
+      r.fuel_per_article==null?'\u2014':money(r.fuel_per_article),
+      r.op_per_article==null?'\u2014':money(r.op_per_article),
+      r.net_per_article==null?'\u2014':signed(r.net_per_article)]);
+
+    el('panel').innerHTML=`<div class="subttl">Daily Accounts Sheet \u2014 ${from} to ${to}${br?' \u00b7 '+br:''}</div>`+
+      table(H,R,R.length?['Total','','','','','','','','',Math.round(T.km),T.lit.toFixed(2),
+        kmpl||'\u2014',T.loaded,T.del,T.und,T.undlr,
+        rup(T.paid),rup(T.topay),rup(T.onacc),rup(T.oatp),rup(T.inc),
+        rup(T.fuel),rup(T.load),rup(T.maint),rup(T.wage),rup(T.other),rup(T.exp),
+        (margin<0?'\u2212':'')+rup(Math.abs(margin)),
+        T.del>0?rup(T.load/T.del):'\u2014',
+        T.del>0?rup(T.fuel/T.del):'\u2014',
+        T.del>0?rup(T.exp/T.del):'\u2014',
+        netPer==null?'\u2014':(netPer<0?'\u2212':'')+rup(Math.abs(netPer))]:null,'acctwide')+
+      `<div style="font-size:11.5px;color:var(--slate);margin-top:7px">
+        Income counts every payment type, including On Account \u2014 which is earned but not
+        yet collected. Per-article figures are blank on a day when nothing was delivered.</div>`;
+
+    LAST={headers:H,name:'daily-accounts-sheet',
+      rows:rows.map(r=>[r.close_date,r.branch_name||r.branch_code,r.line,r.vehicle,r.driver,r.helper,
+        r.registration,r.open_km,r.close_km,r.run_km,r.diesel_litres,r.km_per_litre,
+        r.loaded_qty,r.delivered_qty,r.undelivered_qty,r.undelivered_lr_count,
+        Math.round(num(r.income_paid)),Math.round(num(r.income_to_pay)),
+        Math.round(num(r.income_on_acc)),Math.round(num(r.income_on_acc_to_pay)),
+        Math.round(num(r.income)),
+        Math.round(num(r.fuel_expense)),Math.round(num(r.loading_expense)),
+        Math.round(num(r.maintenance_expense)),Math.round(num(r.driver_wage)+num(r.helper_wage)),
+        Math.round(num(r.mamool_expense)+num(r.misc_expense)),
+        Math.round(num(r.total_expense)),Math.round(num(r.margin)),
+        r.loading_per_article,r.fuel_per_article,r.op_per_article,r.net_per_article])};
+  }
+
+  // ---------- day close status ----------
+  async function runDayClose(from,to){
+    const [F,rows]=await Promise.all([window.N2K.facilities(),window.N2K.dayCloseRange(from,to)]);
+    const branches=F.list.filter(f=>f.kind!=='line');
+    const byDate={};
+    rows.forEach(r=>{ byDate[r.close_date]=byDate[r.close_date]||{};
+      byDate[r.close_date][r.facility?r.facility.code:'?']=r; });
+    const dates=Object.keys(byDate).sort().reverse();
+    const H=['Date','Submitted','Pending','Branches yet to submit'];
+    const R=dates.map(d=>{
+      const got=Object.keys(byDate[d]).filter(c=>byDate[d][c].status==='submitted');
+      const missing=branches.filter(f=>!got.includes(f.code)).map(f=>f.code);
+      return [d,`<b>${got.length}</b> / ${branches.length}`,
+        missing.length?`<span style="color:var(--amber);font-weight:700">${missing.length}</span>`:'—',
+        missing.length?`<span style="font-size:11.5px;color:var(--slate)">${missing.slice(0,14).join(', ')}${missing.length>14?' +'+(missing.length-14)+' more':''}</span>`:'all in'];
+    });
+    el('kpis').innerHTML=kpi('Days in range',dates.length||0)+
+      kpi('Branches',branches.length)+
+      kpi('Sheets received',rows.filter(r=>r.status==='submitted').length);
+    el('panel').innerHTML=`<div class="subttl">Day-close submissions — ${from} to ${to}</div>`+table(H,R);
+    LAST={headers:H,name:'day-close',rows:R.map(r=>r.map(c=>String(c).replace(/<[^>]*>/g,'')))};
+  }
+
+  // ---------- branch: today's entry (unchanged behaviour) ----------
+  async function runTodayEntry(){
+    el('panel').innerHTML='';
+    const [rows,s]=await Promise.all([window.N2K.todayBookingsFor(MYBR||'',50),window.N2K.todayStats(MYBR||'')]);
+    el('kpis').innerHTML=kpi('Bookings',s.count,(MYBR||'')+' · today')+kpi('Delivered',s.delivered)+
+      kpi('Booked value',rup(s.revenue))+kpi('Pending',s.count-s.delivered);
+    await renderDayClose(rows,s);
+  }
+
+  /* Tabs and the report body arrive together, and the page is revealed only
+     when both are ready — instead of the tabs appearing and the report
+     dropping in underneath them a moment later. */
+  (async()=>{
+    const wrap=document.querySelector('.wrap');
+    if(wrap) wrap.style.transition='opacity .15s';   // already hidden in the markup
+    try{ drawTabs(); await run(); }
+    catch(e){ console.error('reports load failed:',e); }
+    finally{ if(wrap) wrap.style.opacity='1'; }   // reveal even on failure
+  })();
+
+  // ---- branch day close: Vehicle Log (auto) + Account Sheet (per line) ----
+  let CREW={vehicles:[],drivers:[],helpers:[]};
+  function sel(name,opts,val,cls){
+    return `<select class="lin ${cls}" data-f="${name}">
+      <option value="">—</option>${opts.map(o=>
+      `<option value="${o.id}" ${String(val)===String(o.id)?'selected':''}>${o.label}</option>`).join('')}</select>`;
+  }
+  async function renderDayClose(rows,s){
+    const ex=el('extra');
+    ex.innerHTML='<div class="subttl">End of day — loading…</div>';
+    let L=[];
+    try{ [L,CREW]=await Promise.all([window.N2K.lineSheet(MYBR),window.N2K.crewOptions()]); }
+    catch(e){ ex.innerHTML='<div class="subttl">End of day</div><div class="panel"><div class="nomatch" style="padding:20px;color:var(--red);font-weight:600">Cannot load the day sheet — '+e.message+'</div></div>'; return; }
+
+    const trs = rows.length ? rows.map((b,i)=>`<tr><td class="mono">${i+1}</td>
+        <td class="mono">${b.booking_number}</td><td>${b.dest?b.dest.code:'—'}</td>
+        <td>${b.receiver_name||'—'}</td><td>${(b.payment_type||'').replace(/_/g,' ')}</td>
+        <td class="r mono">${b.total_pieces}</td><td class="r mono">${rup(b.grand_total)}</td></tr>`).join('')
+      : '<tr><td colspan="7" style="color:var(--slate)">No bookings today.</td></tr>';
+
+    /* Runs whose expenses were already submitted today are not offered again —
+       they were coming back asking for the same figures a second time. They are
+       counted in the heading instead, so nothing silently disappears. */
+    const SUBMITTED=L.filter(l=>l.submitted).length;
+    L=L.filter(l=>!l.submitted);
+
+    const lineRow=(l,i)=>`<tr data-i="${i}">
+      <td><b>${l.name}</b>
+        <div class="mono" style="font-size:11px;color:var(--slate)">${l.code}</div>
+        ${l.submitted?'<div style="font-size:10.5px;color:var(--green);font-weight:700">\u2713 already submitted</div>'
+          :(l.closed?'':'<div style="font-size:10.5px;color:var(--amber);font-weight:600">run not closed yet</div>')}</td>
+      <td>${sel('vehicle_id',CREW.vehicles,l.vehicle_id,'veh')}</td>
+      <td>${sel('driver_id',CREW.drivers,l.driver_id,'')}</td>
+      <td>${sel('helper_id',CREW.helpers,l.helper_id,'')}</td>
+      <td><input class="lin num" data-f="open_km" inputmode="numeric" value="${l.open_km??''}"></td>
+      <td><input class="lin num" data-f="close_km" inputmode="numeric" value="${l.close_km??''}"></td>
+      <td class="r mono runkm">—</td>
+      <td><input class="lin num" data-f="diesel" inputmode="decimal" value="${l.diesel??''}"></td>
+      <td><input class="lin num" data-f="loaded" inputmode="numeric" value="${l.loaded}"></td>
+      <td><input class="lin num" data-f="delivered" inputmode="numeric" value="${l.delivered}"></td>
+      <td class="r mono undel">—</td>
+      <td><input class="lin" data-f="pendingText" value="${(l.pending||[]).join(', ')}" style="width:150px"></td>
+      <td><input class="lin num" data-f="fuel" inputmode="numeric" value="0"></td>
+      <td><input class="lin num" data-f="loading" inputmode="numeric" value="0"></td>
+      <td><input class="lin num" data-f="maint" inputmode="numeric" value="0"></td>
+      <td><input class="lin num" data-f="mamool" inputmode="numeric" value="0"></td>
+      <td><input class="lin num" data-f="misc" inputmode="numeric" value="0"></td>
+      <td><input class="lin num" data-f="dwage" inputmode="numeric" value="0"></td>
+      <td><input class="lin num" data-f="hwage" inputmode="numeric" value="0"></td>
+      <td class="r mono" title="Paid ${rup(l.inc_paid||0)} · To Pay ${rup(l.inc_topay||0)} · On Account ${rup(l.inc_onacc||0)}"><b>${rup(l.income)}</b>
+        ${(l.inc_onacc||0)>0?`<div style="font-size:10px;color:var(--slate)">cash ${rup((l.inc_paid||0)+(l.inc_topay||0))}</div>`:''}</td>
+      <td class="r mono lexp">—</td><td class="r mono lmar">—</td></tr>`;
+
+    ex.innerHTML=`
+      <div class="subttl">End of day — ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>
+      <div class="panel"><div class="sheethead"><span class="t">Vehicle Log</span>
+        <span class="autonote">✓ Built from today's bookings — nothing to type</span></div>
+        <table><thead><tr><th>#</th><th>LR</th><th>To</th><th>Consignee</th><th>Payment</th><th class="r">Pieces</th><th class="r">Amount</th></tr></thead>
+        <tbody>${trs}</tbody></table></div>
+
+      <div class="panel"><div class="sheethead"><span class="t">Account Sheet — one row per run</span>
+        <span class="m">One row per run still to account for · vehicle, crew, KM and diesel come from the Trip and Delivery screens · you type the expenses${
+          SUBMITTED?' \u00b7 <b style="color:var(--green)">'+SUBMITTED+' run(s) already submitted today</b>':''}</span></div>
+        <div style="overflow-x:auto">
+        <table class="acct"><thead><tr>
+          <th>Run / lines</th><th>Vehicle</th><th>Driver</th><th>Helper</th>
+          <th class="r">Open KM</th><th class="r">Close KM</th><th class="r">Run KM</th><th class="r">Diesel L</th>
+          <th class="r">Loaded</th><th class="r">Deliv.</th><th class="r">Undeliv.</th><th>Undelivered LRs</th>
+          <th class="r">Diesel ₹</th><th class="r">Loading ₹</th><th class="r">Maint. ₹</th>
+          <th class="r">Mamool ₹</th><th class="r">Misc ₹</th>
+          <th class="r">Driver ₹</th><th class="r">Helper ₹</th>
+          <th class="r">Income</th><th class="r">Expense</th><th class="r">Margin</th></tr></thead>
+        <tbody id="acctbody">${L.length?L.map(lineRow).join(''):'<tr><td colspan="22" style="color:var(--slate)">'+(SUBMITTED?'All '+SUBMITTED+' run(s) for today have been submitted. Nothing left to account for.':'No runs today — this branch has not created a Load Sheet. Runs made by other branches close at those branches.')+'</td></tr>'}</tbody>
+        <tfoot><tr class="tot"><td colspan="8">Branch total</td>
+          <td class="r mono" id="t-loaded">—</td><td class="r mono" id="t-del">—</td><td class="r mono" id="t-und">—</td><td></td>
+          <td class="r mono" id="t-fuel">—</td><td class="r mono" id="t-mam">—</td><td class="r mono" id="t-misc">—</td>
+          <td class="r mono" id="t-dw">—</td><td class="r mono" id="t-hw">—</td>
+          <td class="r mono" id="t-inc">—</td><td class="r mono" id="t-exp">—</td><td class="r mono" id="t-mar">—</td></tr></tfoot>
+        </table></div>
+        <div class="submitbar">
+          <span class="note" id="subnote">Check the figures, add today's expenses, then submit — admin sees it immediately.</span>
+          <button class="sbtn ghost" id="savedraft" style="background:var(--card);color:var(--navy);border:2px solid var(--line)">Save draft</button>
+          <button class="sbtn" id="submitday"${L.length?'':' disabled'}>Submit day close to admin</button></div>
+      </div>`;
+
+    const body=document.getElementById('acctbody');
+    const gather=()=>[...body.querySelectorAll('tr[data-i]')].map(tr=>{
+      const i=+tr.dataset.i, base=L[i], o=Object.assign({},base);
+      tr.querySelectorAll('.lin').forEach(inp=>{
+        const f=inp.dataset.f, v=inp.value;
+        o[f]= (inp.classList.contains('num')) ? (parseFloat(v)||0) : v;
+        if(f==='open_km'||f==='close_km') o[f]=v===''?null:parseInt(v,10);
+        if(f==='diesel') o[f]=v===''?null:parseFloat(v);
+      });
+      const vsel=tr.querySelector('.veh');
+      const vopt=CREW.vehicles.find(x=>String(x.id)===String(vsel&&vsel.value));
+      o.vehicle_type=vopt?vopt.type:null;
+      o.undelivered=Math.max(0,(o.loaded||0)-(o.delivered||0));
+      return o;
+    });
+    const recalc=()=>{
+      const data=gather();
+      let T={loaded:0,del:0,und:0,fuel:0,mam:0,misc:0,dw:0,hw:0,inc:0,exp:0};
+      data.forEach((o,i)=>{
+        const tr=body.querySelector(`tr[data-i="${i}"]`);
+        const run=(o.close_km!=null&&o.open_km!=null&&o.close_km>=o.open_km)?o.close_km-o.open_km:null;
+        tr.querySelector('.runkm').textContent=run==null?'—':run;
+        tr.querySelector('.undel').textContent=o.undelivered;
+        // every expense head the branch can enter, so the running total on
+        // screen matches what the Daily Accounts Sheet will report
+        const e=(o.fuel||0)+(o.loading||0)+(o.maint||0)+(o.mamool||0)+(o.misc||0)
+              +(o.dwage||0)+(o.hwage||0);
+        const m=(o.income||0)-e;
+        tr.querySelector('.lexp').textContent=rup(e);
+        const mm=tr.querySelector('.lmar');
+        mm.textContent=(m<0?'−':'')+rup(Math.abs(m)); mm.className='r mono lmar '+(m<0?'neg':'pos');
+        T.loaded+=o.loaded||0;T.del+=o.delivered||0;T.und+=o.undelivered||0;
+        T.fuel+=o.fuel||0;T.mam+=o.mamool||0;T.misc+=o.misc||0;T.dw+=o.dwage||0;T.hw+=o.hwage||0;
+        T.inc+=o.income||0;T.exp+=e;
+      });
+      el('t-loaded').textContent=T.loaded; el('t-del').textContent=T.del; el('t-und').textContent=T.und;
+      el('t-fuel').textContent=rup(T.fuel); el('t-mam').textContent=rup(T.mam);
+      el('t-misc').textContent=rup(T.misc); el('t-dw').textContent=rup(T.dw); el('t-hw').textContent=rup(T.hw);
+      el('t-inc').textContent=rup(T.inc); el('t-exp').textContent=rup(T.exp);
+      const M2=T.inc-T.exp, tm=el('t-mar');
+      tm.textContent=(M2<0?'−':'')+rup(Math.abs(M2))+(T.inc?' ('+Math.round(M2/T.inc*100)+'%)':'');
+      tm.className='r mono '+(M2<0?'neg':'pos');
+      return {data,T};
+    };
+    body.addEventListener('input',recalc);
+    body.addEventListener('change',recalc);
+    recalc();
+
+    async function persist(submit,btn,label){
+      const {data,T}=recalc();
+      btn.disabled=true; btn.textContent=submit?'Submitting…':'Saving…';
+      try{
+        await window.N2K.saveAccountSheet(MYBR,data,{received:T.inc,onhand:T.inc},submit);
+        btn.textContent=submit?'✓ Submitted to admin':'✓ Draft saved';
+        el('subnote').textContent=(submit?'Submitted':'Draft saved')+' at '+
+          new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+
+          (submit?' — admin can see this sheet now.':' — you can keep editing and submit later.');
+        if(submit) body.querySelectorAll('.lin').forEach(i=>i.disabled=true);
+        else setTimeout(()=>{btn.disabled=false;btn.textContent=label;},1500);
+      }catch(e){
+        btn.disabled=false; btn.textContent=label;
+        el('subnote').textContent='NOT saved — '+e.message;
+      }
+    }
+    document.getElementById('savedraft').addEventListener('click',function(){persist(false,this,'Save draft');});
+    document.getElementById('submitday').addEventListener('click',function(){persist(true,this,'Submit day close to admin');});
+  }
+
+</script>
+</body>
+</html>

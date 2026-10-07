@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2F4079">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="icon" href="icons/favicon-16.png" sizes="16x16">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="N2K">
+<title>N2K Logistics — Masters</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#2F4079; --navy-deep:#25315C; --ink:#1B2340;
+    --red:#C0392B; --green:#2E7D5B; --amber:#C77A26;
+    --bg:#F4F6FA; --card:#FFFFFF; --tint:#EEF1F7; --tint2:#F7F9FC; --slate:#6A7386; --line:#E4E8F0;
+    --display:'Archivo',sans-serif; --body:'Inter',sans-serif; --mono:'IBM Plex Mono',monospace;
+    --shadow:0 1px 2px rgba(37,49,92,.05),0 6px 18px rgba(37,49,92,.05);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:var(--body);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{text-decoration:none;color:inherit}
+  .mono{font-family:var(--mono)}
+
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(244,246,250,.92);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:11px 22px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:9px;font-family:var(--display);font-weight:900;color:var(--navy);font-size:18px}
+  .brand .blogo{height:26px;width:auto;display:block}
+  .brand .pin{position:relative;width:19px;height:25px}
+  .brand .pin svg{width:100%;height:100%}
+  .brand .pin i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-style:normal;color:#fff;font-size:12px;font-weight:900;padding-bottom:4px}
+  .crumb{font-size:13.5px;color:var(--slate)}
+  .crumb b{color:var(--ink)}
+  .topbar .right{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .backlink{font-weight:600;font-size:13.5px;color:var(--navy)}
+
+  .wrap{max-width:1000px;margin:0 auto;padding:22px 20px 70px}
+  h1{font-family:var(--display);font-weight:800;font-size:23px;letter-spacing:-.4px;margin-bottom:4px}
+  .sub{font-size:13px;color:var(--slate);margin-bottom:18px}
+
+  /* tabs */
+  .tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+  .tab{border:2px solid var(--line);background:var(--card);border-radius:999px;padding:8px 16px;font-weight:600;
+    font-size:13.5px;cursor:pointer;font-family:var(--body);color:var(--slate);transition:.12s}
+  .tab.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  /* The count sits in a fixed-width slot. Without this, a tab grows from
+     "Customers" to "Customers 9168" when the count arrives, every tab after it
+     shifts sideways, and the whole bar can reflow onto another line — which
+     reads as the page jumping. */
+  .tab .ct{font-family:var(--mono);font-size:11px;opacity:.75;margin-left:4px;
+    display:inline-block;min-width:2.6em;text-align:left}
+  .tabs{min-height:42px}
+  /* the list area keeps a floor height, so the panel does not collapse to
+     nothing and then snap open when the rows arrive */
+  #rows{min-height:220px}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .phead{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .phead h2{font-family:var(--display);font-weight:800;font-size:16px}
+  .addbtn{border:0;border-radius:10px;background:var(--red);color:#fff;font-weight:700;font-size:13.5px;
+    padding:9px 15px;cursor:pointer;font-family:var(--body)}
+
+  /* add/edit form */
+  .msearchwrap{display:flex;align-items:center;gap:7px;border:2px solid var(--line);border-radius:10px;
+    padding:6px 11px;background:var(--card);transition:border-color .12s}
+  .msearchwrap:focus-within{border-color:var(--navy)}
+  .msearchwrap svg{color:var(--slate);flex-shrink:0}
+  .msearchwrap input{border:0;outline:0;background:none;font-family:var(--body);font-size:13.5px;
+    width:180px;color:var(--ink)}
+  .msearchwrap input::-webkit-search-cancel-button{display:none}
+  .msearchwrap button{border:0;background:none;color:var(--slate);font-size:17px;line-height:1;
+    cursor:pointer;display:none;padding:0 2px}
+  .msearchwrap.has button{display:block}
+  .mscount{font-family:var(--mono);font-size:11.5px;color:var(--slate);white-space:nowrap}
+  .nomatch{padding:26px 18px;text-align:center;color:var(--slate);font-size:13.5px}
+  @media (max-width:640px){.msearchwrap input{width:110px}}
+  .formrow{display:none;padding:15px 18px;background:var(--tint2);border-bottom:1px solid var(--line)}
+  .formrow.show{display:block}
+  .fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:11px}
+  .fld label{display:block;font-size:11.5px;font-weight:600;color:var(--slate);margin-bottom:4px}
+  .fld input,.fld select{width:100%;border:2px solid var(--line);border-radius:9px;background:#fff;
+    padding:9px 11px;font-family:var(--body);font-size:13.5px;outline:0}
+  .fld input:focus,.fld select:focus{border-color:var(--navy)}
+  .fld input.err{border-color:var(--red)}
+  .facts{display:flex;gap:9px;margin-top:12px;justify-content:flex-end}
+  .fbtn{border:0;border-radius:9px;font-weight:700;font-size:13px;padding:9px 16px;cursor:pointer;font-family:var(--body)}
+  .fbtn.save{background:var(--navy);color:#fff}
+  .fbtn.cancel{background:none;color:var(--slate);border:2px solid var(--line)}
+
+  /* rows */
+  .row{display:flex;align-items:center;gap:13px;padding:12px 18px;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:0}
+  .row.off{opacity:.55;background:var(--tint2)}
+  .row .main{flex:1;min-width:0}
+  .row .nm{font-weight:700;font-size:14.5px}
+  .row .nm .badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:7px;vertical-align:middle}
+  .badge.role{background:var(--tint);color:var(--navy)}
+  .badge.hub{background:rgba(192,57,43,.10);color:var(--red)}
+  .badge.warn{background:rgba(199,122,38,.13);color:var(--amber)}
+  .row .det{font-size:12.5px;color:var(--slate);margin-top:2px}
+  .row .det .mono{color:var(--navy)}
+  .editbtn{border:0;background:none;color:var(--navy);font-weight:600;font-size:12.5px;cursor:pointer;font-family:var(--body)}
+  .statelbl{font-size:11px;font-weight:700;width:58px;text-align:right}
+  .statelbl.on{color:var(--green)} .statelbl.offc{color:var(--slate)}
+
+  /* toggle */
+  .tgl{position:relative;width:42px;height:24px;flex-shrink:0;cursor:pointer}
+  .tgl input{opacity:0;width:0;height:0}
+  .tgl span{position:absolute;inset:0;background:#CBD2E0;border-radius:999px;transition:.18s}
+  .tgl span::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;
+    transition:.18s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .tgl input:checked + span{background:var(--green)}
+  .tgl input:checked + span::after{transform:translateX(18px)}
+
+  .note{margin-top:16px;font-size:12px;color:var(--slate)}
+  @media (max-width:640px){
+    .row{flex-wrap:wrap}
+    .statelbl{width:auto}
+  }
+
+  .impwrap{display:none;position:fixed;inset:0;z-index:70;background:rgba(27,35,64,.45);
+    align-items:center;justify-content:center;padding:20px}
+  .impwrap.open{display:flex}
+  .impbox{background:#fff;border-radius:16px;width:min(860px,100%);max-height:92vh;display:flex;
+    flex-direction:column;box-shadow:0 24px 60px rgba(27,35,64,.32);overflow:hidden}
+  .imphead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
+    padding:17px 20px;border-bottom:1px solid var(--line)}
+  .imphead h3{font-family:var(--display);font-weight:800;font-size:18px}
+  .imphead p{font-size:12.5px;color:var(--slate);margin-top:3px;max-width:560px}
+  .impx{border:0;background:none;font-size:26px;line-height:1;color:var(--slate);cursor:pointer}
+  .impbody{padding:16px 20px;overflow-y:auto}
+  .impchips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px}
+  .impchips .chip{border:2px solid var(--line);background:#fff;border-radius:999px;padding:8px 15px;
+    font-weight:700;font-size:13px;cursor:pointer;font-family:var(--body);color:var(--slate)}
+  .impchips .chip.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  .impcols{font-size:12.5px;color:var(--slate);background:var(--tint2);border:1px solid var(--line);
+    border-radius:11px;padding:10px 13px;margin-bottom:13px}
+  .impcols b{color:var(--ink);font-family:var(--mono);font-size:12px}
+  .impcols .req{color:var(--red);font-weight:700}
+  .impdrop{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:9px;font-size:12.5px;color:var(--slate)}
+  .impbtn2{border:2px solid var(--navy);background:var(--navy);color:#fff;border-radius:10px;padding:9px 15px;
+    font-weight:700;font-size:13px;cursor:pointer;font-family:var(--body)}
+  .impbtn2.ghost{background:#fff;color:var(--navy);border-color:var(--line)}
+  .impbtn2.go{background:var(--red);border-color:var(--red)}
+  .impbtn2:disabled{opacity:.45;cursor:not-allowed}
+  #imptext{width:100%;min-height:120px;border:2px solid var(--line);border-radius:11px;padding:11px;
+    font-family:var(--mono);font-size:12.5px;outline:0;resize:vertical}
+  #imptext:focus{border-color:var(--navy)}
+  .imppreview{margin-top:13px}
+  .imppreview table{width:100%;border-collapse:collapse;font-size:12.5px}
+  .imppreview th{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--slate);text-align:left;padding:6px 9px;border-bottom:1px solid var(--line)}
+  .imppreview td{padding:6px 9px;border-bottom:1px solid var(--line)}
+  .imppreview tr.bad td{background:rgba(192,57,43,.05)}
+  .tagc{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:999px}
+  .tagc.new{background:rgba(46,125,91,.12);color:var(--green)}
+  .tagc.upd{background:rgba(47,64,121,.10);color:var(--navy)}
+  .tagc.err{background:rgba(192,57,43,.10);color:var(--red)}
+  .impfoot{display:flex;gap:9px;align-items:center;justify-content:flex-end;padding:14px 20px;
+    border-top:1px solid var(--line);background:var(--tint2)}
+  .impstat{margin-right:auto;font-size:12.5px;color:var(--slate);font-weight:600}
+
+  /* licence-type tick boxes */
+  .checks{display:flex;gap:14px;flex-wrap:wrap;padding:9px 2px}
+  .chk{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;
+    color:var(--ink);cursor:pointer;white-space:nowrap}
+  .chk input{width:16px;height:16px;accent-color:var(--navy);cursor:pointer}
+  .fhint{font-size:11px;color:var(--slate);margin-top:4px;line-height:1.4}
+
+  /* documents panel */
+  .dsec{border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:13px;background:var(--tint2)}
+  .dsec h4{font-family:var(--display);font-weight:800;font-size:13.5px;margin-bottom:9px}
+  .dlist{width:100%;border-collapse:collapse;font-size:13px}
+  .dlist th{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--slate);text-align:left;padding:7px 9px;border-bottom:1px solid var(--line)}
+  .dlist td{padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:middle}
+  .dlist tr:last-child td{border-bottom:0}
+  .dlink{border:0;background:none;color:var(--navy);font-weight:700;font-size:12.5px;
+    cursor:pointer;font-family:var(--body);padding:0 6px 0 0}
+  .dlink.del{color:var(--red)}
+  .dempty{padding:18px 4px;text-align:center;color:var(--slate);font-size:13px}
+  /* customers: filters, paging and export */
+  .custbar{display:flex;gap:11px;align-items:center;flex-wrap:wrap;padding:11px 17px;
+    border-bottom:1px solid var(--line);background:var(--tint2)}
+  .fchips{display:flex;gap:6px;flex-wrap:wrap}
+  .fchip{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;
+    font-family:var(--body);font-weight:700;font-size:12px;color:var(--slate);cursor:pointer}
+  .fchip.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .crt{display:flex;gap:7px;align-items:center;margin-left:auto;flex-wrap:wrap}
+  .crt select{border:1.5px solid var(--line);border-radius:9px;padding:6px 9px;
+    font-family:var(--body);font-size:12.5px;font-weight:600;background:#fff;color:var(--ink)}
+  .btnx{border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:6px 13px;
+    font-family:var(--body);font-weight:700;font-size:12.5px;cursor:pointer;color:var(--ink)}
+  .btnx:hover{border-color:var(--navy);color:var(--navy)}
+  .btnx:disabled{opacity:.4;cursor:not-allowed}
+  .cpager{display:flex;gap:11px;align-items:center;justify-content:center;
+    padding:13px 17px;border-top:1px solid var(--line);background:var(--tint2);font-size:13px}
+  #cpageinfo{font-family:var(--mono);font-size:12.5px;color:var(--slate)}
+  .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px}
+  .dexp{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;
+    background:rgba(199,122,38,.13);color:var(--amber)}
+  .dexp.gone{background:rgba(192,57,43,.10);color:var(--red)}
+  .aadbox{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13.5px}
+  .aadval{font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:.06em}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="index.html"><img class="blogo" src="data:image/png;base64,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" alt="N2K Logistics"></a>
+  <span class="crumb">Internal · <b>Masters</b></span>
+</div>
+
+<style id="n2k-boot">.wrap{opacity:0}</style>
+<script>
+/* Revealed by the page once its data is in. This timer is the backstop: if the
+   page's own code fails before it gets there, the content still appears rather
+   than the user staring at nothing. */
+setTimeout(function(){
+  var w=document.querySelector('.wrap');
+  if(w && getComputedStyle(w).opacity==='0'){ w.style.transition='opacity .15s'; w.style.opacity='1'; }
+},6000);
+</script>
+<div class="wrap">
+  <h1>Masters</h1>
+  <div class="sub">Add, edit, and enable/disable across the network. Disabled records stay in history but can't be used for new bookings.</div>
+
+  <div id="dbstate" style="display:none;margin-bottom:14px;border-radius:12px;padding:11px 15px;font-size:13px;font-weight:600"></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="panel">
+    <div class="phead"><h2 id="ptitle">—</h2>
+      <div style="display:flex;align-items:center;gap:10px;margin-left:auto">
+        <label class="msearchwrap">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+          <input id="msearch" type="search" placeholder="Search…" autocomplete="off">
+          <button type="button" id="msclear" title="Clear">×</button>
+        </label>
+        <span id="mscount" class="mscount"></span>
+        <button class="addbtn" id="impbtn" style="background:#fff;color:var(--navy);border:2px solid var(--line)">⇪ Import</button>
+        <button class="addbtn" id="addbtn">+ Add</button>
+      </div></div>
+    <div class="formrow" id="formrow"><div class="fgrid" id="fgrid"></div>
+      <div class="formerr" id="formerr" style="display:none;margin-top:11px;background:rgba(192,57,43,.08);
+        border:1.5px solid rgba(192,57,43,.35);border-radius:10px;padding:10px 12px;font-size:12.5px;
+        font-weight:600;color:var(--red);white-space:pre-wrap"></div>
+      <div class="facts"><button class="fbtn cancel" id="fcancel">Cancel</button><button class="fbtn save" id="fsave">Save</button></div>
+    </div>
+    <div class="custbar" id="custbar" style="display:none">
+      <div class="fchips" id="cfilter">
+        <button class="fchip on" data-f="all">All</button>
+        <button class="fchip" data-f="company">Companies</button>
+        <button class="fchip" data-f="individual">Individuals</button>
+        <button class="fchip" data-f="disabled">Disabled</button>
+      </div>
+      <div class="crt">
+        <select id="csort" title="Order">
+          <option value="recent">Recently active first</option>
+          <option value="name">A to Z</option>
+        </select>
+        <select id="cper" title="Rows per page">
+          <option value="50">50 per page</option>
+          <option value="100">100 per page</option>
+          <option value="250">250 per page</option>
+        </select>
+        <button class="btnx" id="cexport">Export to Excel</button>
+      </div>
+    </div>
+    <div id="rows"></div>
+    <div class="cpager" id="cpager" style="display:none">
+      <button class="btnx" id="cprev">&lsaquo; Previous</button>
+      <span id="cpageinfo"></span>
+      <button class="btnx" id="cnext">Next &rsaquo;</button>
+    </div>
+  </div>
+  <div class="note">Every change here is saved to the live N2K database immediately. <b>Staff resignation:</b> switch them off here — they cannot sign in again, and if they are
+    still signed in somewhere they are signed out within seconds. Never delete them: their past
+    bookings must keep pointing at a real person. Disabling a staff member blocks their sign-in; disabling a branch/line removes it from booking dropdowns. New staff create their own password at first sign-in. Use <b>Reset pw</b> to set or reset a password for anyone — it asks for your admin password to authorise the change.</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="n2k_db.js"></script>
+<script>
+/* If the Supabase library does not arrive — slow line, blocked CDN, captive
+   wifi — every page sits on "loading…" for ever with no explanation, because
+   each data call fails separately with "Cannot read properties of null". Say so
+   once, plainly, instead. */
+window.addEventListener('DOMContentLoaded',function(){
+  if (window.supabase) return;
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:#C0392B;'+
+    'color:#fff;padding:11px 16px;font:600 13.5px Inter,Arial,sans-serif;text-align:center';
+  d.innerHTML='No connection to the database \u2014 the page cannot load data. '+
+    'Check the internet connection and reload.';
+  document.body.insertBefore(d, document.body.firstChild);
+});
+</script>
+
+<div class="impwrap" id="impwrap">
+  <div class="impbox">
+    <div class="imphead">
+      <div><h3>Bulk import</h3>
+        <p>Upload hubs, lines and drop points from a spreadsheet. Import hubs first, then lines, then drop points.</p></div>
+      <button class="impx" id="impclose" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="impbody">
+      <div class="impchips" id="impkind">
+        <button class="chip on" data-k="hubs">1 · Hubs / branches</button>
+        <button class="chip" data-k="lines">2 · Lines</button>
+        <button class="chip" data-k="drops">3 · Drop points</button>
+        <button class="chip" data-k="customers">Customers</button>
+      </div>
+
+      <div class="impcols" id="impcols"></div>
+
+      <div class="impdrop" id="impdrop">
+        <input type="file" id="impfile" accept=".csv,.txt,.tsv" hidden>
+        <button class="impbtn2" id="imppick">Choose CSV file</button>
+        <span>or paste the rows below</span>
+        <button class="impbtn2 ghost" id="imptpl">Download template</button>
+        <span id="impwhat" style="margin-left:auto;font-size:12.5px;color:var(--navy);
+          font-weight:700;background:var(--tint2);padding:5px 11px;border-radius:8px"></span>
+      </div>
+      <textarea id="imptext" spellcheck="false" placeholder="code,name,city…"></textarea>
+
+      <div class="imppreview" id="imppreview"></div>
+    </div>
+
+    <div class="impfoot">
+      <span class="impstat" id="impstat"></span>
+      <button class="impbtn2 ghost" id="impcancel">Cancel</button>
+      <button class="impbtn2" id="impcheck">Check rows</button>
+      <button class="impbtn2 go" id="impgo" disabled>Import</button>
+    </div>
+  </div>
+</div>
+
+<div class="impwrap" id="docwrap">
+  <div class="impbox">
+    <div class="imphead">
+      <div><h3 id="dochead">Documents</h3>
+        <p id="docsub">Scanned papers for this record. PDF, JPG or PNG, up to 5 MB each.</p></div>
+      <button class="impx" id="docclose" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="impbody">
+      <div class="dsec" id="docaadsec">
+        <h4>Aadhaar</h4>
+        <div class="aadbox">
+          <span class="aadval" id="docaadval">••••&nbsp;••••&nbsp;••••</span>
+          <button class="impbtn2 ghost" id="docaadshow">Reveal</button>
+          <span class="fhint" id="docaadhint">Hidden by default. Revealing is recorded against your admin sign-in.</span>
+        </div>
+      </div>
+
+      <div class="dsec">
+        <h4>Add a document</h4>
+        <div class="dgrid">
+          <div class="fld"><label>Type</label><select id="dockind"></select></div>
+          <div class="fld"><label>Number (optional)</label><input id="docnum" type="text" autocomplete="off"></div>
+          <div class="fld"><label>Valid from</label><input id="docfrom" type="date"></div>
+          <div class="fld"><label>Valid to</label><input id="docto" type="date"></div>
+        </div>
+        <div class="impdrop">
+          <input type="file" id="docfile" accept=".pdf,.jpg,.jpeg,.png" hidden>
+          <button class="impbtn2" id="docpick">Choose file</button>
+          <span id="docfilename">No file chosen</span>
+          <button class="impbtn2 go" id="docupload" disabled>Upload</button>
+        </div>
+      </div>
+
+      <div class="dsec" style="background:var(--card)">
+        <h4>On file</h4>
+        <div id="doclist"><div class="dempty">Loading…</div></div>
+      </div>
+    </div>
+
+    <div class="impfoot">
+      <span class="impstat" id="docstat"></span>
+      <button class="impbtn2 ghost" id="docdone">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* Agents are allowed onto this page for the Customers tab ONLY. They create
+     customers all day through booking and need to fix their own typos; the
+     other masters stay admin-only, so an agent cannot alter hubs or lines. */
+  const __me=window.N2K.requireRole(['admin','booking_agent']); if(!__me)throw new Error('redirect');
+  const IS_ADMIN=__me.role==='admin';
+  const ALLOWED=IS_ADMIN?null:['customers'];
+  window.N2K.mountNav('masters');
+
+  // ---------------- master definitions + demo data ----------------
+  const M={
+    customers:{title:'Customers',fields:[
+        {k:'name',l:'Name',req:true},
+        {k:'phone',l:'Mobile',type:'phone',req:true},
+        {k:'kind',l:'Type',type:'select',opts:['individual','company']},
+        {k:'gstin',l:'GSTIN'},
+        {k:'email',l:'E-mail'},
+        {k:'address',l:'Billing address'}],
+      rows:[],
+      render:r=>`<div class="nm">${r.name}
+                   ${r.kind==='company'?'<span class="badge role">company</span>':''}
+                   ${r.gstin?'<span class="badge role">GST</span>':''}</div>
+                 <div class="det">${r.phone?'<span class="mono">'+r.phone+'</span>':'no mobile'}
+                   ${r.bookings?' · '+r.bookings+' booking'+(r.bookings>1?'s':'')+
+                     ' · <span class="mono">₹'+Number(r.value).toLocaleString('en-IN')+'</span>':' · never booked'}
+                   ${r.address?' · '+r.address:''}</div>`},
+    users:{title:'Users & agents',fields:[
+        {k:'name',l:'Full name',req:true},{k:'phone',l:'Mobile',type:'phone',req:true},
+        {k:'role',l:'Role',type:'select',opts:['admin','booking_branch']},
+        {k:'branch',l:'Branch',type:'select',opts:[]},
+        {k:'contact',l:'Contact e-mail (optional)'}],
+      rows:[],
+      render:r=>`<div class="nm">${r.name}<span class="badge role">${r.role.replace('_',' ')}</span></div>
+                 <div class="det"><span class="mono">${r.phone}</span> · ${r.branch||'—'}${r.contact?' · '+r.contact:''}</div>`},
+
+    hubs:{title:'Hubs',fields:[
+        {k:'code',l:'Hub code',req:true},{k:'name',l:'Hub name',req:true},{k:'city',l:'City'},
+        {k:'phone',l:'Contact number (printed on LR)'},
+        {k:'email',l:'Contact e-mail (printed on LR)'},
+        {k:'address',l:'Address (printed on LR)'}],
+      rows:[],
+      render:r=>`<div class="nm">${r.name}<span class="badge hub">hub</span>
+                   ${r.lines?`<span class="badge role">${r.lines} line${r.lines>1?'s':''}</span>`:'<span class="badge warn">no lines yet</span>'}</div>
+                 <div class="det"><span class="mono">${r.code}</span>${r.city?' · '+r.city:''}${r.phone?' · '+r.phone:''}
+                 ${!r.phone?'<span class="badge warn">no contact for LR</span>':''}</div>`},
+
+
+    lines:{title:'Lines',fields:[
+        {k:'hub',l:'Belongs to hub',type:'select',opts:[],req:true},
+        {k:'code',l:'Line code',req:true},{k:'name',l:'Line name',req:true},{k:'city',l:'Area / town'}],
+      rows:[],
+      render:r=>`<div class="nm">${r.name}<span class="badge role">line</span>
+                   ${r.drops?`<span class="badge">${r.drops} drop point${r.drops>1?'s':''}</span>`:'<span class="badge warn">no drop points</span>'}</div>
+                 <div class="det"><span class="mono">${r.code}</span> · hub ${r.hub||'<span style="color:var(--red)">not set</span>'}${r.city?' · '+r.city:''}</div>`},
+
+
+    droppoints:{title:'Drop points',fields:[
+        {k:'line',l:'Belongs to line',type:'select',opts:[],req:true},
+        {k:'name',l:'Drop point name',req:true},
+        {k:'landmark',l:'Landmark'},
+        {k:'seq',l:'Route order (1,2,3…)'}],
+      rows:[],
+      render:r=>`<div class="nm">${r.seq?('<span class="mono" style="color:var(--slate)">'+r.seq+'.</span> '):''}${r.name}</div>
+                 <div class="det">${r.line||'<span style="color:var(--red)">line not set</span>'}${r.hub?' · hub '+r.hub:''}${r.landmark?' · '+r.landmark:''}</div>`},
+
+    drivers:{title:'Drivers',owner:'driver',fields:[
+        {k:'name',l:'Name',req:true},{k:'phone',l:'Mobile',type:'phone',req:true},
+        {k:'hub',l:'Mapped to hub',type:'select',opts:[]},
+        {k:'lic',l:'Licence no.',req:true},
+        {k:'ltypes',l:'Licence type',type:'checks',opts:['Light','Badge','Heavy']},
+        {k:'exp',l:'Licence expiry',type:'date'},
+        {k:'aadhaar',l:'Aadhaar no.',type:'aadhaar'}],
+      rows:[],
+      render:r=>{
+        const soon=r.exp && (new Date(r.exp)-Date.now())<30*864e5;
+        return `<div class="nm">${r.name}${soon?'<span class="badge warn">licence expiring</span>':''}
+                  ${(r.ltypes||'').split(',').filter(Boolean).map(t=>`<span class="badge role">${t}</span>`).join('')}
+                  ${badges('driver',r._id)}</div>
+                <div class="det"><span class="mono">${r.lic}</span> · valid till ${r.exp||'—'} · ${r.phone}
+                  ${r.hub?' · hub <span class="mono">'+r.hub+'</span>':'<span class="badge warn">no hub</span>'}</div>`}},
+
+    helpers:{title:'Helpers',owner:'helper',fields:[
+        {k:'name',l:'Helper name',req:true},{k:'phone',l:'Mobile',type:'phone'},
+        {k:'branch',l:'Branch / line',type:'select',opts:[]},
+        {k:'aadhaar',l:'Aadhaar no.',type:'aadhaar'}],
+      rows:[],
+      render:r=>`<div class="nm">${r.name}${badges('helper',r._id)}</div>
+                 <div class="det">${r.phone?'<span class="mono">'+r.phone+'</span>':'no mobile'}${r.branch?' · '+r.branch:''}</div>`},
+
+    vehicles:{title:'Vehicles',owner:'vehicle',fields:[
+        {k:'label',l:'Label',req:true},{k:'reg',l:'Registration',req:true},
+        {k:'cap',l:'Passing Load Capacity (Kg)'},
+        {k:'rc',l:'RC number'},
+        {k:'chassis',l:'Chassis number'},{k:'engine',l:'Engine number'},
+        {k:'insno',l:'Insurance number'},{k:'insco',l:'Insurance provider'},
+        {k:'insfrom',l:'Insurance valid from',type:'date'},{k:'insto',l:'Insurance valid to',type:'date'},
+        {k:'permitno',l:'Permit number'},
+        {k:'permitfrom',l:'Permit valid from',type:'date'},{k:'permitto',l:'Permit valid to',type:'date'},
+        {k:'taxno',l:'Tax number'},{k:'taxamt',l:'Tax amount (₹)'},
+        {k:'pucno',l:'Pollution certificate no.'},
+        {k:'pucfrom',l:'Pollution valid from',type:'date'},{k:'pucto',l:'Pollution valid to',type:'date'}],
+      rows:[],
+      onLabel:'In service',offLabel:'Off road',
+      render:r=>`<div class="nm">${r.label}${badges('vehicle',r._id)}
+                   ${expBadge('Insurance',r.insto)}${expBadge('Permit',r.permitto)}${expBadge('PUC',r.pucto)}</div>
+                 <div class="det"><span class="mono">${r.reg}</span>${r.cap?' · '+r.cap+' kg':''}
+                   ${r.rc?' · RC <span class="mono">'+r.rc+'</span>':''}
+                   ${r.insto?' · insured till '+r.insto:''}</div>`},
+
+    articles:{title:'Items / articles',fields:[
+        {k:'name',l:'Article name',req:true},{k:'uom',l:'Default UOM',type:'select',opts:['kg','fixed']}],
+      rows:[],
+      render:r=>`<div class="nm">${r.name}</div><div class="det">charged per <span class="mono">${r.uom}</span></div>`},
+
+    vehicleservices:{title:'Vehicle service',noToggle:true,fields:[
+        {k:'vehicle',l:'Vehicle',type:'select',opts:[],req:true},
+        {k:'date',l:'Date of service',type:'date',req:true},
+        {k:'stype',l:'Type of service',type:'select',opts:[]},
+        {k:'km',l:'KM when serviced'},
+        {k:'duekm',l:'Next service due KM'},
+        {k:'duedate',l:'Next service due date',type:'date'},
+        {k:'cost',l:'Expenses (₹)'},
+        {k:'notes',l:'Notes'}],
+      rows:[],
+      render:r=>`<div class="nm">${r.vehicle||'—'}
+                   ${r.stype?'<span class="badge role">'+r.stype+'</span>':''}
+                   ${dueBadge(r)}</div>
+                 <div class="det">${r.date||'—'}${r.km?' · at <span class="mono">'+r.km+'</span> km':''}
+                   ${r.duekm?' · next at <span class="mono">'+r.duekm+'</span> km':''}
+                   ${r.duedate?' · or by '+r.duedate:''}
+                   ${r.cost?' · <span class="mono">₹'+Number(r.cost).toLocaleString('en-IN')+'</span>':''}</div>`},
+
+    servicetypes:{title:'Service types',fields:[
+        {k:'name',l:'Service type',req:true}],
+      rows:[],
+      render:r=>`<div class="nm">${r.name}</div>
+                 <div class="det">appears in the Vehicle service dropdown</div>`},
+  };
+
+  /* ---- small badge helpers used by the renderers above ---- */
+  // Aadhaar-on-file and document-count badges. Neither shows any digits.
+  const AAD={}, DOCS={};
+  function badges(owner,id){
+    let out='';
+    if(AAD[owner]&&AAD[owner][id]) out+='<span class="badge role">Aadhaar ✓</span>';
+    const d=DOCS[owner]&&DOCS[owner][id];
+    if(d&&d.n) out+=`<span class="badge role">${d.n} doc${d.n>1?'s':''}</span>`;
+    if(d&&d.expiring) out+=`<span class="badge warn">${d.expiring} expiring</span>`;
+    return out;
+  }
+  // paperwork expiry, shown on the vehicle row
+  function expBadge(label,to){
+    if(!to) return '';
+    const days=Math.floor((new Date(to+'T00:00:00')-new Date().setHours(0,0,0,0))/864e5);
+    if(days<0)  return `<span class="badge hub">${label} expired</span>`;
+    if(days<=30)return `<span class="badge warn">${label} ${days}d left</span>`;
+    return '';
+  }
+  // service due, judged on date here; the KM side comes from vehicle_service_status
+  function dueBadge(r){
+    const km=SVCDUE[r.vehicle]||null;
+    if(km&&km.km_due_now)  return '<span class="badge hub">service due — KM crossed</span>';
+    if(r.duedate){
+      const days=Math.floor((new Date(r.duedate+'T00:00:00')-new Date().setHours(0,0,0,0))/864e5);
+      if(days<0)   return '<span class="badge hub">service overdue</span>';
+      if(days<=15) return `<span class="badge warn">due in ${days}d</span>`;
+    }
+    if(km&&km.km_due_soon) return '<span class="badge warn">service due soon</span>';
+    return '';
+  }
+  const SVCDUE={};
+
+  let cur=(ALLOWED?ALLOWED[0]:'users'), editIdx=null, busy=false;
+
+  const LOADERS={customers:'loadCustomers',users:'loadUsers',hubs:'loadHubs',lines:'loadLines',droppoints:'loadDropPoints',
+                 drivers:'loadDrivers',helpers:'loadHelpers',
+                 vehicles:'loadVehicles',articles:'loadArticles',
+                 vehicleservices:'loadVehicleServices',servicetypes:'loadServiceTypes'};
+  const SAVERS ={customers:'saveCustomer',users:'saveUser',hubs:'saveHub',lines:'saveLine',droppoints:'saveDropPoint',
+                 drivers:'saveDriver',helpers:'saveHelper',
+                 vehicles:'saveVehicle',articles:'saveArticle',
+                 vehicleservices:'saveVehicleService',servicetypes:'saveServiceType'};
+  function state(kind,msg){
+    const el=document.getElementById('dbstate');
+    if(!kind){el.style.display='none';return;}
+    const c=kind==='err'?['#C0392B','rgba(192,57,43,.08)']:
+            kind==='ok' ?['#2E7D5B','rgba(46,125,91,.08)']:['#6A7386','#EEF1F7'];
+    el.style.display='block';el.style.color=c[0];el.style.background=c[1];
+    el.style.border='1.5px solid '+c[0]+'40';el.textContent=msg;
+  }
+  async function loadTab(k){
+    if(k==='customers'){ CST.page=0; await loadCustomerPage(); return; }
+    state('info','Loading '+M[k].title.toLowerCase()+' from the database…');
+    try{
+      M[k].rows=await window.N2K.masters[LOADERS[k]]();
+      state(null); drawRows();
+    }catch(e){
+      state('err','Cannot reach the database — '+e.message+'. Check internet and reload.');
+      M[k].rows=[]; drawRows();
+    }
+    loadBadges(k);   // secondary; never blocks the list
+  }
+
+  // Which records have an Aadhaar on file and how many papers each holds.
+  // Neither call returns digits or file names, so neither needs a password.
+  async function loadBadges(k){
+    const owner=M[k].owner;
+    if(owner){
+      try{
+        const [a,d]=await Promise.all([window.N2K.priv.statusAll(owner),
+                                       window.N2K.docs.counts(owner)]);
+        AAD[owner]=a; DOCS[owner]=d;
+        if(cur===k) drawRows();
+      }catch(e){ console.warn('badge load failed for '+k,e.message); }
+    }
+    if(k==='vehicleservices'){
+      try{
+        const rows=await window.N2K.serviceDue();
+        rows.forEach(r=>{ SVCDUE[r.registration+' \u2014 '+r.label]=r; });
+        if(cur===k) drawRows();
+      }catch(e){ console.warn('service due load failed',e.message); }
+    }
+  }
+
+  // ---------------- tabs ----------------
+  const tabsEl=document.getElementById('tabs');
+  function drawTabs(){
+    // agents see only the tabs in ALLOWED; admin sees everything
+    tabsEl.innerHTML=Object.entries(M)
+      .filter(([k])=>!ALLOWED||ALLOWED.includes(k))
+      .map(([k,m])=>
+        `<button class="tab ${k===cur?'on':''}" data-k="${k}">${m.title}<span class="ct">${m.rows.length}</span></button>`).join('');
+  }
+  tabsEl.addEventListener('click',e=>{
+    const t=e.target.closest('.tab');if(!t)return;
+    cur=t.dataset.k;editIdx=null;hideForm();
+    searchEl.value='';syncSearchUI();
+    drawTabs();drawRows();drawCustBar();
+    if(!M[cur]._loaded){M[cur]._loaded=true;loadTab(cur);}
+  });
+
+  // ---------------- rows ----------------
+  const rowsEl=document.getElementById('rows');
+  function haystack(r){
+    return Object.entries(r).filter(([k])=>!k.startsWith('_'))
+      .map(([,v])=>v==null?'':String(v)).join(' ').toLowerCase();
+  }
+  /* ---------- customers: paged, searched and filtered in the database ----------
+     Supabase caps any table query at 1,000 rows however large a limit is asked
+     for. The first version therefore showed 1,000 of 9,000 and searched only
+     within those, silently. Everything below happens server-side: the page, the
+     search, the filters and the total. ------------------------------------- */
+  const CST={search:'',filter:'all',sort:'recent',per:50,page:0,total:0};
+  let cstTimer=null;
+
+  async function loadCustomerPage(){
+    const m=M.customers;
+    try{
+      const r=await window.N2K.customersPage({
+        search:CST.search, filter:CST.filter, sort:CST.sort,
+        limit:CST.per, offset:CST.page*CST.per});
+      m.rows=r.rows; CST.total=r.total;
+    }catch(e){
+      // a timeout means the query was too heavy, not that the data is gone —
+      // say so plainly rather than leaving a bare database message on screen
+      const slow=/timeout|canceling statement/i.test(e.message||'');
+      state('err', slow
+        ? 'The customer list took too long to load. Try a smaller page size, or search for a name.'
+        : 'Could not load customers — '+e.message);
+      m.rows=[]; CST.total=0;
+    }
+    drawRows(); drawCustBar();
+  }
+
+  function drawCustBar(){
+    const on = cur==='customers';
+    el2('custbar').style.display = on?'flex':'none';
+    el2('cpager').style.display  = on && CST.total>CST.per ? 'flex':'none';
+    if(!on) return;
+    const from=CST.total?CST.page*CST.per+1:0;
+    const to=Math.min((CST.page+1)*CST.per, CST.total);
+    el2('cpageinfo').textContent=from+'–'+to+' of '+CST.total.toLocaleString('en-IN');
+    el2('cprev').disabled = CST.page===0;
+    el2('cnext').disabled = to>=CST.total;
+    // the header count must say the TRUE total, not how many are on screen
+    document.getElementById('mscount').textContent =
+      CST.total.toLocaleString('en-IN')+' record'+(CST.total===1?'':'s')+
+      (CST.search?' matching "'+CST.search+'"':'');
+  }
+  const el2=id=>document.getElementById(id);
+
+  el2('cfilter').addEventListener('click',e=>{
+    const b=e.target.closest('.fchip'); if(!b) return;
+    [...el2('cfilter').children].forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    CST.filter=b.dataset.f; CST.page=0; loadCustomerPage();
+  });
+  el2('csort').addEventListener('change',function(){ CST.sort=this.value; CST.page=0; loadCustomerPage(); });
+  el2('cper').addEventListener('change',function(){ CST.per=+this.value; CST.page=0; loadCustomerPage(); });
+  el2('cprev').addEventListener('click',()=>{ if(CST.page>0){ CST.page--; loadCustomerPage(); window.scrollTo({top:0}); } });
+  el2('cnext').addEventListener('click',()=>{ CST.page++; loadCustomerPage(); window.scrollTo({top:0}); });
+
+  el2('cexport').addEventListener('click',async function(){
+    this.disabled=true; const t=this.textContent; this.textContent='Preparing…';
+    try{
+      const rows=await window.N2K.customersExport(CST.search,CST.filter,n=>{
+        this.textContent='Preparing… '+n.toLocaleString('en-IN');
+      });
+      window.N2K.downloadCSV('n2k-customers-'+window.N2K.todayLocal()+'.csv',
+        ['name','phone','kind','gstin','email','address','status','bookings','value','last_booking'],
+        rows.map(r=>[r.name,r.phone,r.kind,r.gstin,r.email,r.address,r.status,
+                     r.bookings,r.value,r.last_booking]));
+      state('ok',rows.length.toLocaleString('en-IN')+' customer(s) exported.');
+      setTimeout(()=>state(null),3000);
+    }catch(e){ state('err','Export failed — '+e.message); }
+    this.disabled=false; this.textContent=t;
+  });
+
+  function drawRows(){
+    const m=M[cur];
+    document.getElementById('ptitle').textContent=m.title;
+    const q=((document.getElementById('msearch')||{}).value||'').trim().toLowerCase();
+    /* Customers are already searched in the database, so filtering the page
+       again here would hide rows the server correctly returned — a name
+       matched on GSTIN, say, whose GSTIN is not in the row text. */
+    const shown = cur==='customers'
+      ? m.rows.map((r,i)=>({r,i}))
+      : m.rows.map((r,i)=>({r,i})).filter(({r})=>!q||haystack(r).includes(q));
+    if(cur!=='customers')
+      document.getElementById('mscount').textContent =
+        q ? shown.length+' of '+m.rows.length : (m.rows.length? m.rows.length+' record'+(m.rows.length>1?'s':'') : '');
+    rowsEl.innerHTML = shown.length ? shown.map(({r,i})=>`
+      <div class="row ${(m.noToggle||r.active)?'':'off'}">
+        <div class="main">${m.render(r)}</div>
+        <button class="editbtn" data-i="${i}">Edit</button>
+        ${m.owner?`<button class="editbtn docbtn" data-i="${i}">Documents</button>`:''}
+        ${(cur==='users'||cur==='drivers')?`<button class="editbtn pwbtn" data-i="${i}" style="color:var(--red)">Reset&nbsp;pw</button>`:''}
+        ${m.noToggle?'':`
+        <span class="statelbl ${r.active?'on':'offc'}">${r.active?(m.onLabel||'Enabled'):(m.offLabel||'Disabled')}</span>
+        <label class="tgl"><input type="checkbox" data-i="${i}" ${r.active?'checked':''}><span></span></label>`}
+      </div>`).join('')
+      : `<div class="nomatch">No ${m.title.toLowerCase()} match “${q}”.</div>`;
+    drawTabs();
+  }
+  rowsEl.addEventListener('change',async e=>{
+    const t=e.target.closest('.tgl input');if(!t)return;
+    const row=M[cur].rows[t.dataset.i], want=t.checked, prev=row.active;
+    row.active=want; drawRows();
+    try{
+      await window.N2K.masters.setActive(cur,row,want);
+      state('ok',(row.name||row.label||row.code)+' '+(want?'enabled':'disabled')+' — saved.');
+      setTimeout(()=>state(null),2500);
+    }catch(err){
+      row.active=prev; drawRows();
+      state('err','NOT saved — '+err.message);
+    }
+  });
+  rowsEl.addEventListener('click',async e=>{
+    const db=e.target.closest('.docbtn');
+    if(db){ openDocs(M[cur].rows[db.dataset.i]); return; }   // before .editbtn: docbtn shares that class
+    const pb=e.target.closest('.pwbtn');
+    if(pb){
+      const row=M[cur].rows[pb.dataset.i];
+      const me=window.N2K.session.get();
+      if(!me||me.role!=='admin'){state('err','Only an admin can reset passwords.');return;}
+      const np=prompt('New password for '+(row.name||'')+' ('+row.phone+') — at least 6 characters:');
+      if(!np)return;
+      const ap=prompt('Confirm YOUR admin password to authorise this reset:');
+      if(!ap)return;
+      state('info','Resetting password…');
+      try{
+        await window.N2K.adminSetPassword(me.phone,ap,row.phone,np);
+        state('ok','Password reset for '+(row.name||row.phone)+'. They must change it at next sign-in.');
+        setTimeout(()=>state(null),4000);
+      }catch(err){ state('err','NOT reset — '+err.message); }
+      return;
+    }
+    const b=e.target.closest('.editbtn');if(!b)return;
+    await openForm(+b.dataset.i);
+  });
+
+  // ---------------- add / edit form ----------------
+  const formrow=document.getElementById('formrow'),fgrid=document.getElementById('fgrid');
+  async function openForm(idx){
+    editIdx=idx;
+    if(['users','helpers','lines','droppoints','drivers','vehicleservices'].includes(cur))
+      await refreshBranchOptions(true);
+    const m=M[cur],r=idx==null?{}:m.rows[idx];
+    fgrid.innerHTML=m.fields.map(f=>{
+      const same=(val,opt)=>{
+        if(val==null||val==='')return false;
+        const a=String(val).trim(), c=String(opt).split('—')[0].trim();
+        return opt===a || c===a;
+      };
+      if(f.type==='checks'){
+        const on=String(r[f.k]||'').split(',').map(s=>s.trim());
+        return `<div class="fld"><label>${f.l}</label>
+          <div class="checks" data-k="${f.k}">${f.opts.map(o=>
+            `<label class="chk"><input type="checkbox" value="${o}" ${on.includes(o)?'checked':''}> ${o}</label>`
+          ).join('')}</div></div>`;
+      }
+      if(f.type==='phone'){
+        return `<div class="fld"><label>${f.l}${f.req?' <span class="req">*</span>':''}</label>
+          <input data-k="${f.k}" type="tel" inputmode="tel" maxlength="20"
+            value="${r[f.k]??''}" autocomplete="off"
+            placeholder="9894663203 or 0422 2345678">
+          <div class="fhint" data-hint="${f.k}"></div></div>`;
+      }
+      if(f.type==='aadhaar'){
+        // never pre-filled: the number is not readable without the admin password
+        const onFile=r._id && AAD[m.owner] && AAD[m.owner][r._id];
+        return `<div class="fld"><label>${f.l}</label>
+          <input data-k="${f.k}" type="text" inputmode="numeric" maxlength="14" autocomplete="off"
+            placeholder="${r._id?(onFile?'On file — type to replace':'Not on file'):'12 digits'}">
+          <div class="fhint">${r._id&&onFile?'Leave blank to keep the saved number. ':''}Saving an Aadhaar asks for your admin password.</div></div>`;
+      }
+      if(f.type==='select')return `<div class="fld"><label>${f.l}${f.req?' *':''}</label><select data-k="${f.k}">
+        ${f.opts.map(o=>`<option ${same(r[f.k],o)?'selected':''}>${o}</option>`).join('')}</select></div>`;
+      return `<div class="fld"><label>${f.l}${f.req?' *':''}</label>
+        <input data-k="${f.k}" type="${f.type||'text'}" value="${r[f.k]??''}"></div>`;
+    }).join('');
+    formrow.classList.add('show');
+    fgrid.querySelector('input,select')?.focus();
+  }
+  function hideForm(){formrow.classList.remove('show');editIdx=null;
+    const fe=document.getElementById('formerr'); if(fe)fe.style.display='none';}
+  document.getElementById('addbtn').addEventListener('click',()=>openForm(null));
+
+  /* ---------- bulk import ---------- */
+  (function(){
+    const W=document.getElementById('impwrap');
+    /* An agent may only import customers. Leaving the hub and line chips
+       visible would invite them to try, and the refusal would come from the
+       database rather than the screen — worse than not offering it. */
+    if(ALLOWED){
+      document.querySelectorAll('#impkind .chip').forEach(c=>{
+        if(!ALLOWED.includes(c.dataset.k)) c.remove();
+      });
+      const first=document.querySelector('#impkind .chip');
+      if(first) first.classList.add('on');
+    }
+    let KIND=ALLOWED?ALLOWED[0]:'hubs', RECS=[];
+    const spec=()=>window.N2K.importSpecs[KIND];
+    const open=o=>{W.classList.toggle('open',o);document.body.style.overflow=o?'hidden':'';};
+    function showCols(){
+      const sp=spec();
+      document.getElementById('impcols').innerHTML=
+        'Columns: '+sp.cols.map(c=>`<b>${c}</b>${sp.required.includes(c)?'<span class="req">*</span>':''}`).join(', ')+
+        ' &nbsp;·&nbsp; <span class="req">*</span> required. A header row is optional — without one, keep this exact column order.'+
+        (KIND==='lines'?' &nbsp;·&nbsp; <b>hub_code</b> must match a hub already imported.'
+         :KIND==='drops'?' &nbsp;·&nbsp; <b>line_code</b> must match a line already imported.'
+         :KIND==='customers'?' &nbsp;·&nbsp; Matched on <b>phone</b>: an existing customer is updated, not duplicated. Format the phone column as <b>Text</b> in Excel, or leading digits are lost.':'');
+      document.getElementById('imptext').placeholder=sp.sample;
+      const w=document.getElementById('impwhat');
+      if(w) w.innerHTML='Importing as <b>'+sp.title+'</b>';
+    }
+    document.getElementById('impbtn').addEventListener('click',()=>{open(true);showCols();});
+    document.getElementById('impclose').addEventListener('click',()=>open(false));
+    document.getElementById('impcancel').addEventListener('click',()=>open(false));
+    W.addEventListener('click',e=>{if(e.target===W)open(false);});
+    document.getElementById('impkind').addEventListener('click',e=>{
+      const c=e.target.closest('.chip'); if(!c)return;
+      document.querySelectorAll('#impkind .chip').forEach(x=>x.classList.remove('on'));
+      c.classList.add('on'); KIND=c.dataset.k; RECS=[];
+      document.getElementById('imppreview').innerHTML='';
+      document.getElementById('impstat').textContent='';
+      document.getElementById('impgo').disabled=true;
+      showCols();
+    });
+    document.getElementById('imppick').addEventListener('click',()=>document.getElementById('impfile').click());
+    document.getElementById('impfile').addEventListener('change',e=>{
+      const f=e.target.files[0]; if(!f)return;
+      const r=new FileReader();
+      r.onload=()=>{document.getElementById('imptext').value=r.result;
+        document.getElementById('impstat').textContent=f.name+' loaded — now check the rows';};
+      r.readAsText(f);
+    });
+    document.getElementById('imptpl').addEventListener('click',()=>{
+      const sp=spec();
+      window.N2K.downloadCSV('n2k-'+KIND+'-template.csv',sp.cols,[sp.sample.split('\n')[1].split(',')]);
+    });
+    document.getElementById('impcheck').addEventListener('click',async ()=>{
+      const txt=document.getElementById('imptext').value.trim();
+      const st=document.getElementById('impstat');
+      if(!txt){ st.textContent='Paste rows or choose a file first.'; return; }
+      st.textContent='Checking…';
+      try{
+        /* Guard against importing a file as the wrong kind. A customers file
+           pasted while "Hubs" is selected was being read as hubs — every row
+           became a facility, and the first repeated code failed the whole
+           import with a constraint error that named a table the agent had
+           never heard of. Read the header and refuse the mismatch. */
+        const firstLine=(txt.split('\n')[0]||'').toLowerCase();
+        /* Most specific first. A hubs file is code,name,city,phone,... — it has
+           both "name" and "phone", so a loose customers test matched it and
+           blocked a perfectly good hubs import. The distinguishing column is
+           what matters: line_code, hub_code and code are unique to facilities;
+           only a customers file has a bare "phone" WITHOUT a "code". */
+        const has=c=>new RegExp('(^|,)\\s*'+c+'\\s*(,|$)').test(firstLine);
+        const looksLike =
+            has('line_code') ? 'drops'
+          : has('hub_code')  ? 'lines'
+          : has('code')      ? 'hubs'
+          : (has('name') && (has('phone')||has('mobile')||has('gstin')||has('kind')))
+                             ? 'customers'
+          : null;
+        if(looksLike && looksLike!==KIND){
+          const nice={customers:'Customers',hubs:'Hubs / branches',lines:'Lines',drops:'Drop points'};
+          st.innerHTML='<span style="color:var(--red)">These columns look like <b>'+
+            nice[looksLike]+'</b>, but <b>'+nice[KIND]+'</b> is selected above. '+
+            'Pick '+nice[looksLike]+' and check again.</span>';
+          document.getElementById('impgo').disabled=true;
+          document.getElementById('imppreview').innerHTML='';
+          return;
+        }
+
+        if(KIND==='customers'){
+          // customers are matched on mobile and applied row by row, so the
+          // facility importer's preview does not apply here
+          const rows=window.N2K.csvParse(txt);
+          const total=Math.max(0,rows.length-1);
+          st.textContent='Importing '+total.toLocaleString('en-IN')+' row(s)…';
+          // a big file takes a while; showing progress stops it looking stuck
+          const res=await window.N2K.importCustomers(rows,(done,all)=>{
+            st.textContent='Importing… '+done.toLocaleString('en-IN')+
+              ' of '+all.toLocaleString('en-IN');
+          });
+          document.getElementById('imppreview').innerHTML=
+            `<div style="padding:12px 4px;font-size:13px;line-height:1.7">
+              <b style="color:var(--green)">${res.added} added</b> ·
+              <b>${res.updated} updated</b> (matched on mobile)
+              ${res.failed.length?'<div style="margin-top:9px;color:var(--red)"><b>'+res.failed.length+
+                ' row(s) skipped</b><div style="font-size:12px;margin-top:4px">'+
+                res.failed.slice(0,12).map(f=>'· '+f).join('<br>')+
+                (res.failed.length>12?'<br>· …and '+(res.failed.length-12)+' more':'')+'</div></div>':''}
+            </div>`;
+          st.textContent='Done.';
+          document.getElementById('impgo').disabled=true;
+          M.customers._loaded=false;
+          if(cur==='customers') loadTab('customers');
+          return;
+        }
+        RECS=await window.N2K.importPreview(KIND,window.N2K.csvParse(txt));
+      }catch(e){ st.textContent='Could not read — '+e.message; return; }
+      const bad=RECS.filter(r=>r.error).length;
+      const nw=RECS.filter(r=>!r.error&&r.action==='create').length;
+      const up=RECS.filter(r=>!r.error&&r.action==='update').length;
+      st.innerHTML=`${nw} new · ${up} update${bad?` · <span style="color:var(--red)">${bad} with problems (skipped)</span>`:''}`;
+      document.getElementById('impgo').disabled=(nw+up)===0;
+      const sp=spec();
+      document.getElementById('imppreview').innerHTML=`<table><thead><tr><th>#</th>
+        ${sp.cols.map(c=>`<th>${c}</th>`).join('')}<th>Result</th></tr></thead><tbody>
+        ${RECS.slice(0,60).map(r=>`<tr class="${r.error?'bad':''}"><td>${r.line}</td>
+          ${sp.cols.map(c=>`<td>${(r.data[c]||'')}</td>`).join('')}
+          <td>${r.error?`<span class="tagc err">${r.error}</span>`
+            :`<span class="tagc ${r.action==='create'?'new':'upd'}">${r.action==='create'?'new':'update'}</span>`}</td>
+        </tr>`).join('')}</tbody></table>
+        ${RECS.length>60?`<div style="font-size:12px;color:var(--slate);padding:8px 2px">Showing first 60 of ${RECS.length} rows.</div>`:''}`;
+    });
+    document.getElementById('impgo').addEventListener('click',async function(){
+      const st=document.getElementById('impstat');
+      this.disabled=true; const t=this.textContent; this.textContent='Importing…';
+      try{
+        const r=await window.N2K.importCommit(KIND,RECS);
+        st.innerHTML=`<span style="color:var(--green)">Imported: ${r.created} new, ${r.updated} updated${r.skipped?', '+r.skipped+' skipped':''}</span>`;
+        document.getElementById('imptext').value=''; document.getElementById('imppreview').innerHTML='';
+        RECS=[];
+        M.hubs._loaded=false; M.lines._loaded=false; M.droppoints._loaded=false;
+        await refreshBranchOptions(true);
+        if(['hubs','lines','droppoints'].includes(cur)) loadTab(cur);
+      }catch(e){ st.innerHTML='<span style="color:var(--red)">NOT imported — '+e.message+'</span>'; }
+      this.disabled=false; this.textContent=t;
+    });
+  })();
+  document.getElementById('fcancel').addEventListener('click',hideForm);
+  // tell them as they type, rather than only when they press Save
+  fgrid.addEventListener('input',e=>{
+    const inp=e.target.closest('[data-k]'); if(!inp) return;
+    const m=M[cur], f=m.fields.find(x=>x.k===inp.dataset.k);
+    if(!f || f.type!=='phone') return;
+    const h=fgrid.querySelector('[data-hint="'+f.k+'"]'); if(!h) return;
+    const d=inp.value.replace(/[^0-9]/g,'');
+    inp.classList.remove('err');
+    if(!d){ h.textContent=''; return; }
+    if(d.length>15){ h.textContent='Too long — '+d.length+' digits'; h.style.color='var(--red)'; inp.classList.add('err'); }
+    else if(/^[6-9][0-9]{9}$/.test(d)){ h.textContent='Mobile'; h.style.color='var(--green)'; }
+    // an Indian landline is an STD code beginning 0 plus the number: 0422 2345678
+    else if(/^0[0-9]{9,11}$/.test(d)){ h.textContent='Landline (STD code kept)'; h.style.color='var(--green)'; }
+    else if(d.length<6){ h.textContent='Too short — '+d.length+' digits'; h.style.color='var(--amber)'; }
+    else { h.textContent='Saved as typed'; h.style.color='var(--slate)'; }
+  });
+
+  document.getElementById('fsave').addEventListener('click',async ()=>{
+    const m=M[cur];let ok=true;const vals={};
+    m.fields.forEach(f=>{
+      const el=fgrid.querySelector(`[data-k="${f.k}"]`);
+      if(!el)return;
+      if(f.type==='checks'){
+        vals[f.k]=Array.from(el.querySelectorAll('input:checked')).map(c=>c.value).join(',');
+        return;
+      }
+      vals[f.k]=el.value.trim();
+      /* Typing a new customer is not the same as importing an old list. An
+         import may legitimately contain landlines and short numbers, but a
+         17-digit number typed at the counter is a slipped finger — and nobody
+         finds out until someone tries to ring the consignee. */
+      if(f.type==='phone' && vals[f.k]){
+        const d=vals[f.k].replace(/[^0-9]/g,'');
+        if(d.length>15 || d.length<6){
+          el.classList.add('err');
+          const h=fgrid.querySelector('[data-hint="'+f.k+'"]');
+          if(h){ h.textContent='That is '+d.length+' digits. A number should be between 6 and 15.';
+                 h.style.color='var(--red)'; }
+          ok=false; return;
+        }
+      }
+      const bad=f.req && !vals[f.k];
+      el.classList.toggle('err',bad);if(bad)ok=false;
+    });
+    if(!ok||busy)return;
+
+    // Aadhaar is never written with the record itself — it goes to the locked
+    // table through a function that re-checks the admin's own password.
+    const aadFld=m.fields.find(f=>f.type==='aadhaar');
+    const aadRaw=aadFld?String(vals[aadFld.k]||'').replace(/[^0-9]/g,''):'';
+    let adminPass=null;
+    if(aadRaw){
+      if(aadRaw.length!==12||/^[01]/.test(aadRaw)){
+        const fe=document.getElementById('formerr');
+        fe.textContent='Aadhaar must be 12 digits and cannot begin with 0 or 1.';
+        fe.style.display='block'; return;
+      }
+      adminPass=prompt('Confirm YOUR admin password to save this Aadhaar number:');
+      if(!adminPass) return;
+    }
+
+    busy=true;
+    const btn=document.getElementById('fsave'); btn.textContent='Saving…';
+    try{
+      const row=editIdx==null?null:m.rows[editIdx];
+      let ownerId;
+      if(cur==='drivers') ownerId=await window.N2K.masters.saveDriver(vals,row);
+      else ownerId=await window.N2K.masters[SAVERS[cur]](vals,row?row._id:null);
+      ownerId=ownerId||(row?row._id:null);
+
+      if(aadRaw){
+        const me=window.N2K.session.get();
+        await window.N2K.priv.set(me.phone,adminPass,m.owner,ownerId,aadRaw);
+      }
+      hideForm();
+      state('ok','Saved to the database.');
+      await loadTab(cur);
+      if(cur==='hubs'||cur==='lines'){ await window.N2K.facilities(true); await refreshBranchOptions(true); }
+      setTimeout(()=>state(null),2500);
+    }catch(e){
+      const msg='NOT saved — '+(e.message||e)+(e.hint?'\nHint: '+e.hint:'')+(e.details?'\nDetail: '+e.details:'');
+      state('err',msg);
+      const fe=document.getElementById('formerr');
+      fe.textContent=msg; fe.style.display='block';
+      fe.scrollIntoView({behavior:'smooth',block:'center'});
+      console.error('Masters save failed:',e);
+    }
+    btn.textContent='Save'; busy=false;
+  });
+
+  const HINT={users:'name, mobile, role, branch…',drivers:'name, mobile, licence…',helpers:'name, mobile, branch…',hubs:'hub name, code, city…',lines:'line name, code, hub…',
+    droppoints:'drop point, line, landmark…',
+    customers:'name, mobile, GSTIN…',
+    vehicles:'label, registration, RC, insurance…',articles:'article name…',
+    vehicleservices:'vehicle, service type…',servicetypes:'service type…'};
+  const searchEl=document.getElementById('msearch');
+  const wrapEl=document.querySelector('.msearchwrap');
+  function syncSearchUI(){
+    wrapEl.classList.toggle('has',!!searchEl.value);
+    searchEl.placeholder='Search '+(HINT[cur]||'…');
+  }
+  searchEl.addEventListener('input',()=>{
+    syncSearchUI();
+    if(cur==='customers'){
+      // wait for typing to stop rather than firing a query per keystroke
+      CST.search=searchEl.value.trim(); CST.page=0;
+      clearTimeout(cstTimer); cstTimer=setTimeout(loadCustomerPage,300);
+      return;
+    }
+    drawRows();
+  });
+  document.getElementById('msclear').addEventListener('click',()=>{
+    searchEl.value='';syncSearchUI();
+    if(cur==='customers'){
+      clearTimeout(cstTimer); CST.search=''; CST.page=0; loadCustomerPage();
+      searchEl.focus(); return;
+    }
+    drawRows();searchEl.focus();});
+  searchEl.addEventListener('keydown',e=>{if(e.key==='Escape'){
+    searchEl.value='';syncSearchUI();
+    if(cur==='customers'){ CST.search=''; CST.page=0; loadCustomerPage(); return; }
+    drawRows();}});
+
+  /* The first tab's data and the tab counts are fetched together, and the page
+     is revealed once. Each master used to load on its own, so the counts on the
+     tabs ticked up one after another while the user watched. */
+  syncSearchUI();
+  (async()=>{
+    const wrap=document.querySelector('.wrap');
+    if(wrap) wrap.style.transition='opacity .15s';   // already hidden in the markup
+    try{
+      const first=ALLOWED?ALLOWED[0]:'users';
+      M[first]._loaded=true;
+      await loadTab(first);
+    }catch(e){ console.error('masters load failed:',e); }
+    finally{ if(wrap) wrap.style.opacity='1'; drawRows(); }
+  })();
+  // fetch the other masters too, so tab counts are real from the start
+  /* The tab counts are fetched in the background so they are real rather than
+     zero. Each fetch used to call drawTabs() the moment it returned — ten
+     separate rebuilds of the tab bar, each changing its width as a count
+     appeared, which is what made this page jump about while the others sat
+     still.
+
+     Now they are all awaited and the tab bar is redrawn ONCE. */
+  (async()=>{
+    const keys=['customers','hubs','lines','droppoints','drivers','helpers',
+                'vehicles','articles','vehicleservices','servicetypes']
+      .filter(k=>!ALLOWED||ALLOWED.includes(k));
+    await Promise.all(keys.map(async k=>{
+      if(M[k]._loaded) return;                       // the open tab already has its data
+      try{ M[k].rows=await window.N2K.masters[LOADERS[k]](); M[k]._loaded=true; }
+      catch(e){ console.warn('count load failed for '+k,e.message); }
+    }));
+    drawTabs();                                      // one redraw, not ten
+  })();
+  async function refreshBranchOptions(fresh){
+    const hubFlds=[M.users.fields.find(f=>f.k==='branch'),
+                   M.helpers.fields.find(f=>f.k==='branch'),
+                   M.drivers.fields.find(f=>f.k==='hub'),
+                   M.lines.fields.find(f=>f.k==='hub')].filter(Boolean);
+    const lineFld=M.droppoints.fields.find(f=>f.k==='line');
+    const vehFld =M.vehicleservices.fields.find(f=>f.k==='vehicle');
+    const typeFld=M.vehicleservices.fields.find(f=>f.k==='stype');
+
+    // vehicles and service types are independent of the facility list, so a
+    // failure there must not blank the hub dropdowns
+    try{
+      const [vehs,types]=await Promise.all([window.N2K.vehicleOptions(),
+                                            window.N2K.serviceTypeOptions()]);
+      if(vehFld){ vehFld.type='select'; vehFld.opts=vehs.length?vehs:['(add a vehicle first)']; }
+      if(typeFld){ typeFld.type='select'; typeFld.opts=['(none)'].concat(types); }
+    }catch(e){ console.warn('vehicle/service-type options failed',e.message); }
+
+    try{
+      const [hubs,lines]=await Promise.all([window.N2K.hubOptions(!!fresh),window.N2K.lineOptions(!!fresh)]);
+      hubFlds.forEach(f=>{
+        f.type='select';
+        // a line must belong to a hub; a user, helper or driver need not
+        f.opts=(f.req?[]:['(no hub)']).concat(hubs);
+        if(!hubs.length){ f.type='text'; delete f.opts; f.l='Hub code (add a hub first)'; }
+      });
+      if(lineFld){
+        lineFld.type='select'; lineFld.opts=lines;
+        if(!lines.length){ lineFld.type='text'; delete lineFld.opts;
+          lineFld.l='Line code (add a line first)'; }
+      }
+      return true;
+    }catch(e){
+      hubFlds.forEach(f=>{f.type='text';delete f.opts;f.l='Hub code (e.g. NMB01)';});
+      if(lineFld){lineFld.type='text';delete lineFld.opts;lineFld.l='Line code (e.g. ATRL)';}
+      return false;
+    }
+  }
+  /* ---------- documents & Aadhaar ----------
+     Everything in this panel lives behind the admin's own password. It is asked
+     once when the panel opens, held in a local variable while the panel is on
+     screen, and dropped the moment it closes — it is never stored anywhere. -- */
+  let DOC={owner:null,id:null,pass:null,name:''};
+
+  async function openDocs(row){
+    const m=M[cur];
+    const me=window.N2K.session.get();
+    if(!me||me.role!=='admin'){ state('err','Only an admin can open documents.'); return; }
+
+    const pass=prompt('Confirm YOUR admin password to open documents for '+
+                      (row.name||row.label||'this record')+':');
+    if(!pass) return;
+
+    DOC={owner:m.owner,id:row._id,pass:pass,name:(row.name||row.label||'')};
+    document.getElementById('dochead').textContent='Documents — '+DOC.name;
+    document.getElementById('docsub').textContent=
+      'Scanned papers for this '+DOC.owner+'. PDF, JPG or PNG, up to 5 MB each.';
+
+    // Aadhaar section only applies to people
+    const aadSec=document.getElementById('docaadsec');
+    aadSec.style.display=(DOC.owner==='vehicle')?'none':'block';
+    document.getElementById('docaadval').textContent='••••\u00a0••••\u00a0••••';
+    document.getElementById('docaadshow').disabled=false;
+    document.getElementById('docaadshow').textContent='Reveal';
+
+    const kindSel=document.getElementById('dockind');
+    kindSel.innerHTML=(window.N2K.docs.KINDS[DOC.owner]||['Other'])
+      .map(k=>`<option>${k}</option>`).join('');
+
+    resetUploadForm();
+    docOpen(true);
+    await refreshDocList();
+  }
+
+  function docOpen(o){
+    document.getElementById('docwrap').classList.toggle('open',o);
+    document.body.style.overflow=o?'hidden':'';
+    if(!o) DOC={owner:null,id:null,pass:null,name:''};   // password dropped on close
+  }
+  function resetUploadForm(){
+    document.getElementById('docfile').value='';
+    document.getElementById('docnum').value='';
+    document.getElementById('docfrom').value='';
+    document.getElementById('docto').value='';
+    document.getElementById('docfilename').textContent='No file chosen';
+    document.getElementById('docupload').disabled=true;
+    document.getElementById('docstat').textContent='';
+  }
+  const dstat=(msg,colour)=>{
+    const el=document.getElementById('docstat');
+    el.innerHTML=colour?`<span style="color:var(--${colour})">${msg}</span>`:msg;
+  };
+
+  function expTag(to){
+    if(!to) return '';
+    const days=Math.floor((new Date(to+'T00:00:00')-new Date().setHours(0,0,0,0))/864e5);
+    if(days<0)   return '<span class="dexp gone">expired</span>';
+    if(days<=30) return `<span class="dexp">${days}d left</span>`;
+    return '';
+  }
+
+  async function refreshDocList(){
+    const box=document.getElementById('doclist');
+    box.innerHTML='<div class="dempty">Loading…</div>';
+    let rows;
+    try{
+      rows=await window.N2K.docs.list(window.N2K.session.get().phone,DOC.pass,DOC.owner,DOC.id);
+    }catch(e){
+      box.innerHTML=`<div class="dempty" style="color:var(--red)">${e.message}</div>`; return;
+    }
+    if(!rows.length){ box.innerHTML='<div class="dempty">Nothing on file yet.</div>'; return; }
+    box.innerHTML=`<table class="dlist"><thead><tr>
+      <th>Type</th><th>Number</th><th>Valid to</th><th>File</th><th>Added</th><th></th></tr></thead><tbody>
+      ${rows.map(d=>`<tr>
+        <td>${d.doc_kind||'—'}</td>
+        <td class="mono">${d.doc_number||'—'}</td>
+        <td>${d.valid_to||'—'} ${expTag(d.valid_to)}</td>
+        <td>${d.file_name}<div class="fhint">${d.size_bytes?Math.round(d.size_bytes/1024)+' KB':''}</div></td>
+        <td>${(d.uploaded_at||'').slice(0,10)}<div class="fhint">${d.uploaded_by_name||''}</div></td>
+        <td style="white-space:nowrap;text-align:right">
+          <button class="dlink dl" data-id="${d.id}">Download</button>
+          <button class="dlink del" data-id="${d.id}" data-n="${d.file_name}">Delete</button></td>
+      </tr>`).join('')}</tbody></table>`;
+  }
+
+  document.getElementById('docclose').addEventListener('click',()=>docOpen(false));
+  document.getElementById('docdone').addEventListener('click',()=>docOpen(false));
+  document.getElementById('docwrap').addEventListener('click',e=>{
+    if(e.target===document.getElementById('docwrap')) docOpen(false);});
+
+  document.getElementById('docaadshow').addEventListener('click',async function(){
+    this.disabled=true; this.textContent='Checking…';
+    try{
+      const v=await window.N2K.priv.get(window.N2K.session.get().phone,DOC.pass,DOC.owner,DOC.id);
+      document.getElementById('docaadval').textContent=
+        v?window.N2K.priv.group(v):'Not on file';
+      this.textContent='Shown';
+    }catch(e){
+      dstat(e.message,'red'); this.disabled=false; this.textContent='Reveal';
+    }
+  });
+
+  document.getElementById('docpick').addEventListener('click',
+    ()=>document.getElementById('docfile').click());
+  document.getElementById('docfile').addEventListener('change',e=>{
+    const f=e.target.files[0];
+    document.getElementById('docfilename').textContent=f?f.name:'No file chosen';
+    document.getElementById('docupload').disabled=!f;
+    if(f&&f.size>window.N2K.docs.MAX_BYTES){
+      dstat('That file is larger than 5 MB — choose a smaller scan.','red');
+      document.getElementById('docupload').disabled=true;
+    } else dstat('');
+  });
+
+  document.getElementById('docupload').addEventListener('click',async function(){
+    const f=document.getElementById('docfile').files[0];
+    if(!f) return;
+    this.disabled=true; const t=this.textContent; this.textContent='Uploading…';
+    try{
+      await window.N2K.docs.upload(window.N2K.session.get().phone,DOC.pass,DOC.owner,DOC.id,f,{
+        kind:document.getElementById('dockind').value,
+        title:f.name,
+        number:document.getElementById('docnum').value.trim()||null,
+        from:document.getElementById('docfrom').value||null,
+        to:document.getElementById('docto').value||null});
+      resetUploadForm();
+      dstat('Uploaded.','green');
+      await refreshDocList();
+      loadBadges(cur);
+    }catch(e){ dstat(e.message,'red'); }
+    this.disabled=false; this.textContent=t;
+  });
+
+  document.getElementById('doclist').addEventListener('click',async e=>{
+    const dl=e.target.closest('.dl'), del=e.target.closest('.del');
+    if(dl){
+      dl.disabled=true; const t=dl.textContent; dl.textContent='Opening…';
+      try{
+        const url=await window.N2K.docs.downloadUrl(window.N2K.session.get().phone,DOC.pass,dl.dataset.id);
+        window.open(url,'_blank','noopener');
+        dstat('Link opened — it stops working after a minute.','green');
+      }catch(err){ dstat(err.message,'red'); }
+      dl.disabled=false; dl.textContent=t; return;
+    }
+    if(del){
+      if(!confirm('Delete "'+del.dataset.n+'" permanently? This cannot be undone.')) return;
+      try{
+        await window.N2K.docs.remove(window.N2K.session.get().phone,DOC.pass,del.dataset.id);
+        dstat('Deleted.','green');
+        await refreshDocList();
+        loadBadges(cur);
+      }catch(err){ dstat(err.message,'red'); }
+    }
+  });
+
+  refreshBranchOptions();
+</script>
+</body>
+</html>

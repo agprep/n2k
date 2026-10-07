@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2F4079">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="icon" href="icons/favicon-16.png" sizes="16x16">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="N2K">
+<title>N2K Logistics — Delivery</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="n2k_db.js"></script>
+<script>
+/* If the Supabase library does not arrive — slow line, blocked CDN, captive
+   wifi — every page sits on "loading…" for ever with no explanation, because
+   each data call fails separately with "Cannot read properties of null". Say so
+   once, plainly, instead. */
+window.addEventListener('DOMContentLoaded',function(){
+  if (window.supabase) return;
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:#C0392B;'+
+    'color:#fff;padding:11px 16px;font:600 13.5px Inter,Arial,sans-serif;text-align:center';
+  d.innerHTML='No connection to the database \u2014 the page cannot load data. '+
+    'Check the internet connection and reload.';
+  document.body.insertBefore(d, document.body.firstChild);
+});
+</script>
+
+<style>
+  :root{--navy:#2F4079;--ink:#1B2340;--red:#C0392B;--green:#2E7D5B;--amber:#C77A26;
+    --bg:#F4F6FA;--card:#FFF;--tint:#EEF1F7;--tint2:#F8FAFC;--slate:#6A7386;--line:#E4E8F0;
+    --display:'Archivo',sans-serif;--body:'Inter',sans-serif;--mono:'IBM Plex Mono',monospace;
+    --shadow:0 1px 2px rgba(37,49,92,.05),0 6px 18px rgba(37,49,92,.05)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--body);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{text-decoration:none;color:inherit}.mono{font-family:var(--mono)}
+  .topbar{display:flex;align-items:center;gap:14px;padding:11px 24px;background:var(--card);border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:9px;font-family:var(--display);font-weight:900;color:var(--navy);font-size:18px}
+  .brand .blogo{height:26px;width:auto;display:block}
+  .brand .pin{position:relative;width:19px;height:25px}.brand .pin svg{width:100%;height:100%}
+  .brand .pin i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-style:normal;color:#fff;font-size:12px;font-weight:900;padding-bottom:4px}
+  .crumb{font-size:13.5px;color:var(--slate)}.crumb b{color:var(--ink)}
+
+  .wrap{max-width:1500px;margin:0 auto;padding:20px 24px 70px}
+  h1{font-family:var(--display);font-weight:800;font-size:23px;letter-spacing:-.4px}
+  .sub{font-size:13px;color:var(--slate);margin:3px 0 16px}
+  .msg{margin:0 0 14px;border-radius:11px;padding:11px 14px;font-size:13px;font-weight:600;display:none}
+  .msg.ok{display:block;background:rgba(46,125,91,.08);border:1.5px solid rgba(46,125,91,.35);color:var(--green)}
+  .msg.err{display:block;background:rgba(192,57,43,.08);border:1.5px solid rgba(192,57,43,.35);color:var(--red)}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px 14px;box-shadow:var(--shadow)}
+  .kpi .k{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--slate)}
+  .kpi .v{font-family:var(--display);font-weight:800;font-size:24px;margin-top:4px;letter-spacing:-.6px}
+  .kpi .s{font-size:11.5px;color:var(--slate);margin-top:2px}
+  .kpi.due .v{color:var(--red)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);overflow:hidden}
+  .ch{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    padding:13px 17px;border-bottom:1px solid var(--line)}
+  .ch h2{font-family:var(--display);font-weight:800;font-size:15.5px}
+  .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto}
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:6px 13px;font-weight:600;
+    font-size:12.5px;cursor:pointer;font-family:var(--body);color:var(--slate)}
+  .chip.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  .search{display:flex;align-items:center;gap:7px;border:1.5px solid var(--line);border-radius:10px;
+    padding:6px 11px;background:var(--tint2)}
+  .search svg{width:15px;height:15px;color:var(--slate);flex-shrink:0}
+  .search input{border:0;outline:0;background:none;font-family:var(--body);font-size:13px;width:170px}
+
+  .tw{overflow-x:auto}
+  table{width:100%;border-collapse:collapse}
+  th{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--slate);
+    font-weight:500;text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:11px 14px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:var(--tint2)}
+  td.r,th.r{text-align:right}
+  td.mono{font-family:var(--mono);font-size:12.5px}
+  .sub2{font-size:11.5px;color:var(--slate);margin-top:2px}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap}
+  .pill.grey{background:var(--tint);color:var(--slate)}
+  .pill.green{background:rgba(46,125,91,.10);color:var(--green)}
+  .pill.red{background:rgba(192,57,43,.10);color:var(--red)}
+  .pill.amber{background:rgba(199,122,38,.13);color:var(--amber)}
+  .due{color:var(--red);font-weight:700}
+  .act{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .btn{border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:7px 12px;font-size:12.5px;
+    font-weight:700;cursor:pointer;font-family:var(--body);color:var(--navy);white-space:nowrap}
+  .btn.ok{background:var(--green);border-color:var(--green);color:#fff}
+  .btn.no{background:#fff;border-color:rgba(192,57,43,.4);color:var(--red)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .runrow{display:flex;align-items:center;gap:11px;padding:12px 17px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .runrow:last-child{border-bottom:0}
+  .runrow .tn{font-family:var(--mono);font-weight:600;font-size:13px}
+  .runrow .mid{flex:1;min-width:190px;font-size:12.5px;color:var(--slate)}
+  .runrow .f{display:flex;flex-direction:column;gap:4px}
+  .runrow label{font-size:9.5px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.05em}
+  .runrow input{width:100px;border:2px solid var(--line);border-radius:9px;padding:8px 9px;
+    font-family:var(--mono);font-size:12.5px;text-align:right;outline:0}
+  .runrow input:focus{border-color:var(--navy)}
+  .runrow .done{font-size:12px;color:var(--green);font-weight:700}
+  /* multi-select */
+  .cbx{width:17px;height:17px;accent-color:var(--navy);cursor:pointer}
+  tr.sel td{background:#F4F7FD}
+  .ptag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;letter-spacing:.03em;
+    white-space:nowrap}
+  .ptag.topay{background:rgba(192,57,43,.11);color:var(--red)}
+  .ptag.paid{background:rgba(46,125,91,.10);color:var(--green)}
+  .ptag.acct{background:rgba(47,64,121,.09);color:var(--navy)}
+  .bulk{position:sticky;bottom:0;background:var(--navy);color:#fff;display:none;
+    align-items:center;gap:12px;padding:12px 17px;flex-wrap:wrap;z-index:20}
+  .bulk.on{display:flex}
+  .bulk .n{font-weight:800;font-size:14px}
+  .bulk .m{font-size:12px;opacity:.82;margin-right:auto}
+  .bbtn{border:0;border-radius:9px;padding:9px 15px;font-family:var(--body);
+    font-weight:800;font-size:13px;cursor:pointer}
+  .bbtn.ok{background:var(--green);color:#fff}
+  .bbtn.no{background:#fff;color:var(--red)}
+  .bbtn.gh{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.45)}
+  .crow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .crow:last-child{border-bottom:0}
+  .crow .who{flex:1;font-size:13px}
+  .crow .who b{display:block;font-family:var(--mono);font-size:11.5px;color:var(--slate)}
+  .camt{width:104px;border:2px solid var(--line);border-radius:9px;padding:7px 10px;
+    font-family:var(--mono);font-size:13.5px;text-align:right}
+  .camt.short{border-color:var(--amber);background:#FDF8F1}
+  .runlock{font-size:11.5px;font-weight:700;color:var(--amber);white-space:nowrap;
+    background:rgba(199,122,38,.12);padding:5px 10px;border-radius:8px;display:inline-block}
+  .empty{padding:30px 18px;text-align:center;color:var(--slate);font-size:13.5px}
+  .empty b{display:block;color:var(--ink);margin-bottom:4px}
+
+  /* confirm sheet */
+  .modal{display:none;position:fixed;inset:0;z-index:60;background:rgba(27,35,64,.45);
+    align-items:center;justify-content:center;padding:18px}
+  .modal.open{display:flex}
+  .box{background:#fff;border-radius:16px;max-width:430px;width:100%;padding:20px;box-shadow:0 20px 50px rgba(27,35,64,.3)}
+  .box h3{font-family:var(--display);font-weight:800;font-size:18px}
+  .box .lr{font-family:var(--mono);font-size:13px;color:var(--navy);margin-top:2px}
+  .fld{margin-top:13px}
+  .fld label{display:block;font-size:11.5px;font-weight:700;color:var(--slate);margin-bottom:5px;
+    text-transform:uppercase;letter-spacing:.04em}
+  .fld input,.fld select{width:100%;border:2px solid var(--line);border-radius:10px;padding:10px 12px;
+    font-family:var(--body);font-size:14.5px;outline:0}
+  .fld input:focus,.fld select:focus{border-color:var(--navy)}
+  .duebox{margin-top:13px;background:rgba(192,57,43,.06);border:1.5px solid rgba(192,57,43,.3);
+    border-radius:11px;padding:11px 13px;font-size:13px;font-weight:700;color:var(--red)}
+  /* return-to-source toggle, inside the "mark undelivered" box */
+  .rettoggle{margin-top:13px;border:1.5px solid var(--line);border-radius:11px;padding:11px 12px;
+    display:flex;gap:10px;align-items:flex-start;cursor:pointer;transition:.12s}
+  .rettoggle.on{border-color:var(--red);background:rgba(192,57,43,.05)}
+  .rettoggle input{margin-top:2px;width:17px;height:17px;accent-color:var(--red);flex-shrink:0}
+  .rettoggle .t b{font-size:13px;display:block}
+  .rettoggle .t span{font-size:11.5px;color:var(--slate);display:block;margin-top:2px;line-height:1.5}
+  .acts{display:flex;gap:9px;justify-content:flex-end;margin-top:18px}
+  .acts .btn{padding:11px 18px;font-size:14px}
+  @media (max-width:700px){ th:nth-child(3),td:nth-child(3){display:none} .search input{width:120px} }
+
+  /* attached photo/video, shown inside the deliver/undeliver confirm box */
+  .mediablock{border-top:1px dashed var(--line);margin-top:14px;padding-top:13px}
+  .mediablock .mh{font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;
+    letter-spacing:.05em;margin-bottom:9px;display:flex;align-items:center;gap:7px}
+  .mediablock .mh svg{width:13px;height:13px}
+  .mgrid{display:flex;gap:9px;flex-wrap:wrap}
+  .mitem{position:relative;width:64px;height:64px;border-radius:9px;overflow:hidden;border:1.5px solid var(--line);
+    cursor:pointer;background:var(--tint2);transition:.12s}
+  .mitem:hover{border-color:var(--navy)}
+  .mitem img,.mitem video{width:100%;height:100%;object-fit:cover;display:block}
+  .mitem .vidmark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(27,35,64,.22);pointer-events:none}
+  .mitem .vidmark svg{width:17px;height:17px;color:#fff;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))}
+  .mediaerr{font-size:11.5px;color:var(--slate)}
+
+  /* lightbox: full-size photo / playable video */
+  .lbmodal{display:none;position:fixed;inset:0;z-index:70;background:rgba(15,20,36,.82);
+    align-items:center;justify-content:center;padding:20px}
+  .lbmodal.open{display:flex}
+  .lbwrap{position:relative;max-width:560px;width:100%;background:#0F1424;border-radius:16px;overflow:hidden}
+  .lbwrap .lbtop{display:flex;justify-content:space-between;align-items:center;padding:11px 15px;
+    color:#fff;font-size:12.5px;font-family:var(--mono)}
+  .lbwrap .lbclose{background:rgba(255,255,255,.14);border:0;color:#fff;width:26px;height:26px;
+    border-radius:50%;cursor:pointer;font-size:14px;line-height:1}
+  .lbwrap .lbmedia{width:100%;max-height:70vh;display:block;background:#000}
+  .lbwrap .lbmedia img,.lbwrap .lbmedia video{width:100%;max-height:70vh;object-fit:contain;display:block;margin:0 auto}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="./"><img class="blogo" src="data:image/png;base64,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" alt="N2K Logistics"></a>
+  <span class="crumb">Internal · <b>Delivery</b></span>
+</div>
+
+<style id="n2k-boot">.wrap{opacity:0}</style>
+<script>
+/* Revealed by the page once its data is in. This timer is the backstop: if the
+   page's own code fails before it gets there, the content still appears rather
+   than the user staring at nothing. */
+setTimeout(function(){
+  var w=document.querySelector('.wrap');
+  if(w && getComputedStyle(w).opacity==='0'){ w.style.transition='opacity .15s'; w.style.opacity='1'; }
+},6000);
+</script>
+<div class="wrap">
+  <h1>Delivery</h1>
+  <p class="sub" id="sub">Every consignment to be delivered by your branch. Mark each one delivered or undelivered.</p>
+  <div class="msg" id="msg"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card" id="runcard" style="display:none;margin-bottom:16px">
+    <div class="ch"><h2>Vehicle returned — close the run</h2>
+      <span class="m">Enter the closing odometer and diesel used</span></div>
+    <div id="runrows"></div>
+  </div>
+
+  <div class="card">
+    <div class="ch">
+      <h2 id="title">Consignments</h2>
+      <div class="tools">
+        <div class="chips" id="chips">
+          <button class="chip on" data-f="pending">To deliver</button>
+          <button class="chip" data-f="failed">Undelivered</button>
+          <button class="chip" data-f="fresh">Not attempted</button>
+          <button class="chip" data-f="delivered">Delivered</button>
+          <button class="chip" data-f="all">All</button>
+        </div>
+        <label class="search">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+          <input id="q" placeholder="LR, consignee, drop point…" autocomplete="off">
+        </label>
+      </div>
+    </div>
+    <div id="rows"><div class="empty">Loading…</div></div>
+  <div class="bulk" id="bulk">
+    <span class="n" id="bn">0 selected</span>
+    <span class="m" id="bm"></span>
+    <button class="bbtn gh" id="bclear">Clear</button>
+    <button class="bbtn no" id="bfail">Mark undelivered</button>
+    <button class="bbtn ok" id="bok">Mark delivered &rarr;</button>
+  </div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="box">
+    <h3 id="mtitle">Mark delivered</h3>
+    <div class="lr" id="mlr">—</div>
+    <div id="mbody"></div>
+    <div class="acts">
+      <button class="btn" id="mcancel">Cancel</button>
+      <button class="btn ok" id="mok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="lbmodal" id="lbmodal">
+  <div class="lbwrap">
+    <div class="lbtop"><span id="lbtitle">—</span><button class="lbclose" id="lbclose">×</button></div>
+    <div class="lbmedia" id="lbmedia"></div>
+  </div>
+</div>
+
+<script>
+  const __me=window.N2K.requireRole(['admin','booking_agent']); if(!__me)throw new Error('redirect');
+  window.N2K.mountNav('delivery');
+  const BR=__me.branch||null;
+  const el=id=>document.getElementById(id);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const rup=n=>'\u20B9'+Math.round(n||0).toLocaleString('en-IN');
+  const age=ms=>window.N2K.ageText(ms);
+  const say=(k,t)=>{const m=el('msg');m.className='msg '+k;m.textContent=t;
+    if(k==='ok')setTimeout(()=>{m.className='msg';},6000);};
+  let ROWS=[], FILTER='pending', QUERY='', CUR=null, MODE='deliver';
+  /* booking_id -> {trip_number, closed}. A consignment sitting on a run that
+     has not been closed cannot be marked delivered: the closing KM and diesel
+     are entered when the vehicle returns, and marking deliveries first means
+     the run gets closed later from memory, or forgotten entirely. */
+  let RUNST={}, BLOCKALL=false;
+  const runBlocked=b=>{
+    if(BLOCKALL) return {trip_number:'\u2014 reload to check'};
+    const r=RUNST[b.id]; return r && !r.closed ? r : null;
+  };
+  /* The single test for "may this consignment be marked?". Everything —
+     row buttons, row checkbox, select-all, the bulk bar and the save itself —
+     goes through this, so a new path cannot quietly bypass the rule. */
+  const markable=b=>b.status!=='delivered'&&b.status!=='returned'&&!runBlocked(b);
+  const DUE=b=>b.payment_type==='to_pay'?(parseFloat(b.grand_total)||0):0;
+
+  if(!BR) el('sub').innerHTML='<span style="color:var(--red);font-weight:700">Your login has no branch — ask admin to set it in Masters.</span>';
+
+  async function load(){
+    try{ ROWS=await window.N2K.atBranch(BR,null); }
+    catch(e){ el('rows').innerHTML='<div class="empty" style="color:var(--red)"><b>Cannot load</b>'+esc(e.message)+'</div>'; return; }
+
+    /* Fetch the run state BEFORE drawing, not after.
+
+       It used to be fetched after the render, and the result only ever LOCKED
+       rows — it never unlocked them. So after closing a run the list drew from
+       the stale state, the padlock stayed, and it took some unrelated click to
+       redraw. Awaiting it here means the first render is already right, in both
+       directions, and there is no repaint step to go wrong. */
+    try{
+      RUNST = await window.N2K.runStateFor(ROWS.map(b=>b.id)) || {};
+      BLOCKALL = false;          // cleared on success, or one failure locks for ever
+    }
+    catch(e){
+      console.error(e);
+      // cannot verify: block everything rather than let a delivery through
+      RUNST = {}; BLOCKALL = true;
+      say('err','Could not check the run status. Reload before marking deliveries.');
+    }
+    draw();
+  }
+
+  function draw(){
+    const pend=ROWS.filter(b=>b.status!=='delivered'&&b.status!=='returned');   // failed ones still need delivering
+    const fail=ROWS.filter(b=>b.status==='delivery_failed');
+    const fresh=pend.filter(b=>b.status!=='delivery_failed');
+    const done=ROWS.filter(b=>b.status==='delivered');
+    const collect=pend.reduce((a,b)=>a+DUE(b),0);
+    el('kpis').innerHTML=
+      `<div class="kpi"><div class="k">To deliver</div><div class="v">${pend.length}</div>
+         <div class="s">${pend.reduce((a,b)=>a+(b.total_pieces||0),0)} pieces${fail.length?' · incl. '+fail.length+' undelivered':''}</div></div>
+       <div class="kpi due"><div class="k">To collect</div><div class="v">${rup(collect)}</div><div class="s">To Pay, on delivery</div></div>
+       <div class="kpi"><div class="k">Delivered</div><div class="v">${done.length}</div><div class="s">shown in this list</div></div>
+       <div class="kpi"><div class="k">Undelivered — retry</div><div class="v" style="${fail.length?'color:var(--red)':''}">${fail.length}</div><div class="s">still in the list above</div></div>`;
+
+    let rows = FILTER==='pending'?pend : FILTER==='failed'?fail
+             : FILTER==='fresh'?fresh : FILTER==='delivered'?done : ROWS;
+    if(QUERY){ const q=QUERY.toLowerCase();
+      rows=rows.filter(b=>(b.booking_number||'').toLowerCase().includes(q)
+        ||(b.receiver_name||'').toLowerCase().includes(q)
+        ||(b.drop_point_name||'').toLowerCase().includes(q)
+        ||(b.receiver_phone||'').includes(q)); }
+    const LAB={pending:'to deliver',failed:'undelivered — retry',fresh:'not yet attempted',
+               delivered:'delivered',all:'all'};
+    el('title').textContent='Consignments · '+(LAB[FILTER]||FILTER)+' ('+rows.length+')';
+    /* Ticking rows lets a driver clear a whole stop at once. Only the header
+       box for OPEN rows is offered — a delivered consignment cannot be
+       re-delivered, so including it would promise something that fails. */
+    const openRows=rows.filter(b=>b.status!=='delivered'&&b.status!=='returned');
+    el('rows').innerHTML = rows.length ? `<div class="tw"><table><thead><tr>
+        <th style="width:34px">${openRows.length?`<input type="checkbox" class="cbx" id="ckall" title="Select all shown">`:''}</th>
+        <th>LR</th><th>Consignor → Consignee</th><th>Address / phone</th><th>Drop point</th>
+        <th class="r">Pcs</th><th>Payment</th><th class="r">Amount</th><th>Status</th><th class="r">Age</th>
+        <th style="width:190px"></th></tr></thead>
+      <tbody>${rows.map((b,i)=>{
+        const due=DUE(b), open=b.status!=='delivered'&&b.status!=='returned';
+        return `<tr class="${SEL.has(b.id)?'sel':''}" data-id="${b.id}">
+          <td>${markable(b)?`<input type="checkbox" class="cbx pick" data-i="${i}" ${SEL.has(b.id)?'checked':''}>`:''}</td>
+          <td class="mono">${b.booking_number}<div class="sub2">${b.origin?b.origin.code:''} → ${b.dest?b.dest.code:''}</div></td>
+          <td>${esc((b.customer&&b.customer.name)||'—')}<div class="sub2">→ <b>${esc(b.receiver_name||'—')}</b></div></td>
+          <td style="color:var(--slate)">${esc((b.receiver_address||'—'))}<div class="sub2">${esc(b.receiver_phone||'')}</div></td>
+          <td>${b.drop_point_name?esc(b.drop_point_name):'<span style="color:var(--slate)">—</span>'}</td>
+          <td class="r mono">${b.total_pieces||''}</td>
+          <td><span class="ptag ${due?'topay':(b.payment_type==='prepaid'?'paid':'acct')}">${
+            String(b.payment_type||'').replace(/_/g,' ').toUpperCase()}</span></td>
+          <td class="r mono ${due?'due':''}">${due?rup(due):rup(b.grand_total)}</td>
+          <td><span class="pill ${b.status==='delivered'?'green':b.status==='delivery_failed'?'red':'grey'}">${b.status==='delivery_failed'?'undelivered':String(b.status||'').replace(/_/g,' ')}</span></td>
+          <td class="r mono">${age(Date.now()-new Date(b.created_at).getTime())}</td>
+          <td><div class="act">
+            ${!open ? `<span class="pill green">done</span>`
+              : runBlocked(b)
+                ? `<span class="runlock" title="Close the run before marking deliveries">
+                     &#128274; close ${runBlocked(b).trip_number} first</span>`
+                : `<button class="btn ok" data-i="${i}" data-a="deliver">${b.status==='delivery_failed'?'Delivered (retry)':'Delivered'}</button>
+                   <button class="btn no" data-i="${i}" data-a="fail">Undelivered</button>`}
+            <button class="btn" data-i="${i}" data-a="print">LR</button></div></td>
+        </tr>`;}).join('')}</tbody></table></div>`
+      : `<div class="empty"><b>Nothing here</b>${
+          QUERY ? 'No consignment matches that search.'
+          : FILTER==='pending' ? 'Everything booked to this branch has been delivered.'
+          : FILTER==='failed'  ? 'Nothing undelivered.'
+          : 'Consignments booked to this branch appear here.'}</div>`;
+    el('rows').__rows=rows;
+    drawBulk();
+
+  }
+
+  /* ---------- marking several at once ----------
+     A driver clearing a stop has several consignments in hand, and the old
+     flow made him open a dialog for each. Now he ticks them and presses once.
+
+     The only thing that still needs asking is money: a To Pay consignment has
+     cash to collect and the figure can differ from what is due. Everything
+     else — Paid, On Account — has nothing to ask, so nothing is asked.
+
+     "Received by" was dropped on the client's instruction: the driver takes a
+     signature on the LR copy at the door, so the typed name added nothing.
+     ------------------------------------------------------------------------ */
+  const SEL=new Set();
+
+  function selected(){
+    // filtered again here: a run can be created on another device between
+    // ticking a box and pressing the button
+    return (el('rows').__rows||[]).filter(b=>SEL.has(b.id) && markable(b));
+  }
+  function drawBulk(){
+    // a row can vanish from view when the filter changes; drop it from the
+    // selection too, or the bar counts things the agent can no longer see
+    const visible=new Set((el('rows').__rows||[]).map(b=>b.id));
+    [...SEL].forEach(id=>{ if(!visible.has(id)) SEL.delete(id); });
+
+    const sel=selected();
+    el('bulk').classList.toggle('on', sel.length>0);
+    if(!sel.length) return;
+    const pcs=sel.reduce((a,b)=>a+(b.total_pieces||0),0);
+    const topay=sel.filter(b=>DUE(b)>0);
+    const cash=topay.reduce((a,b)=>a+DUE(b),0);
+    el('bn').textContent=sel.length+' selected';
+    el('bm').textContent=pcs+' pcs'+
+      (topay.length?' \u00b7 '+rup(cash)+' to collect on '+topay.length+
+        (topay.length===1?' of them':' of them'):' \u00b7 nothing to collect');
+    const all=el('ckall');
+    if(all){
+      const open=(el('rows').__rows||[]).filter(markable);
+      all.checked = open.length>0 && open.every(b=>SEL.has(b.id));
+      // nothing markable on this page: hide it rather than offer a dead control
+      all.style.display = open.length ? '' : 'none';
+    }
+  }
+
+  el('rows').addEventListener('change',e=>{
+    const all=e.target.closest('#ckall');
+    if(all){
+      // only rows that may actually be marked; a blocked run must not be
+      // swept in by "select all"
+      const open=(el('rows').__rows||[]).filter(markable);
+      open.forEach(b=>{ if(all.checked) SEL.add(b.id); else SEL.delete(b.id); });
+      draw(); return;
+    }
+    const pick=e.target.closest('.pick');
+    if(pick){
+      const b=(el('rows').__rows||[])[+pick.dataset.i]; if(!b) return;
+      if(pick.checked) SEL.add(b.id); else SEL.delete(b.id);
+      pick.closest('tr').classList.toggle('sel',pick.checked);
+      drawBulk();
+    }
+  });
+
+  el('bclear').addEventListener('click',()=>{ SEL.clear(); draw(); });
+
+  /* deliver the batch. Only the To Pay ones open a box; if none are To Pay the
+     whole thing goes through on the single press. */
+  el('bok').addEventListener('click',()=>{
+    const sel=selected(); if(!sel.length) return;
+    const topay=sel.filter(b=>DUE(b)>0);
+    if(!topay.length){ runDeliver(sel,{}); return; }
+
+    el('mtitle').textContent='Collect before delivering';
+    el('mlr').textContent=topay.length+' of the '+sel.length+
+      ' selected '+(topay.length===1?'is':'are')+' To Pay'+
+      (sel.length>topay.length?'. The other '+(sel.length-topay.length)+
+        ' '+(sel.length-topay.length===1?'is':'are')+' marked delivered straight away.':'.');
+    el('mbody').innerHTML=topay.map(b=>`
+      <div class="crow">
+        <div class="who">${esc(b.receiver_name||'\u2014')}<b>${b.booking_number}</b></div>
+        <span style="font-size:12px;color:var(--slate)">due&nbsp;${rup(DUE(b))}</span>
+        <input class="camt" data-id="${b.id}" inputmode="numeric" value="${DUE(b)}">
+      </div>`).join('')+
+      `<div id="shortnote" style="margin-top:11px;font-size:12px;color:var(--amber);font-weight:600"></div>`;
+    el('mok').textContent='Deliver all '+sel.length;
+    MODE='bulkdeliver'; CUR=null;
+    el('modal').classList.add('open');
+  });
+
+  el('bfail').addEventListener('click',()=>{
+    const sel=selected(); if(!sel.length) return;
+    el('mtitle').textContent='Mark '+sel.length+' undelivered';
+    el('mlr').textContent='They stay in this list and return to Trip for the next sheet.';
+    el('mbody').innerHTML=`
+      <div class="fld" style="margin-bottom:11px"><label>Reason</label>
+        <select id="why"><option>Consignee not available</option><option>Address not found</option>
+          <option>Refused</option><option>Payment not ready</option>
+          <option>Shop closed</option><option>Other</option></select></div>
+      <div class="fld"><label>Note (optional)</label>
+        <input id="note" placeholder="Anything the next attempt should know"></div>
+      <div style="margin-top:10px;font-size:12px;color:var(--slate)">
+        The same reason is recorded against all ${sel.length}. Mark them separately if the reasons differ.
+      </div>`;
+    el('mok').textContent='Mark '+sel.length+' undelivered';
+    MODE='bulkfail'; CUR=null;
+    el('modal').classList.add('open');
+  });
+
+  // amber warning as soon as a collection is typed short
+  document.addEventListener('input',e=>{
+    if(!e.target.closest('.camt')) return;
+    const n=el('shortnote'); if(!n) return;
+    let short=0;
+    document.querySelectorAll('.camt').forEach(i=>{
+      const b=(el('rows').__rows||[]).find(x=>x.id===i.dataset.id);
+      if(!b) return;
+      const got=parseFloat(i.value)||0, due=DUE(b);
+      i.classList.toggle('short',got<due);
+      if(got<due) short+=due-got;
+    });
+    n.textContent = short
+      ? 'Collections are '+rup(short)+' short in total \u2014 you will be asked to confirm before it saves.'
+      : '';
+  });
+
+  async function runDeliver(list,amounts){
+    /* Last guard before writing. The buttons and boxes are already blocked,
+       but a run created on another device between ticking and pressing would
+       otherwise let a delivery through against a vehicle still out. */
+    const blocked=list.filter(b=>runBlocked(b));
+    if(blocked.length){
+      say('err','Close '+runBlocked(blocked[0]).trip_number+' first — '+
+        blocked.length+' of these are on a run that is still out.');
+      return;
+    }
+    const btn=el('bok'); btn.disabled=true; const t=btn.textContent; btn.textContent='Saving\u2026';
+    let done=0, failed=[];
+    for(const b of list){
+      try{
+        const due=DUE(b);
+        await window.N2K.deliverBooking(b.id,{cod:due?(amounts[b.id]??due):null});
+        done++;
+      }catch(e){ failed.push(b.booking_number); }
+    }
+    SEL.clear();
+    closeModal();
+    if(failed.length) say('err',done+' delivered, but '+failed.length+' failed: '+failed.join(', '));
+    else say('ok',done+' consignment'+(done===1?'':'s')+' marked delivered.');
+    await load();
+    btn.disabled=false; btn.textContent=t;
+  }
+
+  async function runFail(list,reason){
+    const blocked=list.filter(b=>runBlocked(b));
+    if(blocked.length){
+      say('err','Close '+runBlocked(blocked[0]).trip_number+' first — '+
+        blocked.length+' of these are on a run that is still out.');
+      return;
+    }
+    const btn=el('bfail'); btn.disabled=true;
+    let done=0, failed=[];
+    for(const b of list){
+      try{ await window.N2K.failBooking(b.id,reason); done++; }
+      catch(e){ failed.push(b.booking_number); }
+    }
+    SEL.clear();
+    closeModal();
+    if(failed.length) say('err',done+' marked, but '+failed.length+' failed: '+failed.join(', '));
+    else say('ok',done+' marked undelivered \u2014 they return to Trip for the next sheet.');
+    await load();
+    btn.disabled=false;
+  }
+
+  el('chips').addEventListener('click',e=>{
+    const c=e.target.closest('.chip'); if(!c)return;
+    document.querySelectorAll('#chips .chip').forEach(x=>x.classList.remove('on'));
+    c.classList.add('on'); FILTER=c.dataset.f; draw();
+  });
+  el('q').addEventListener('input',()=>{QUERY=el('q').value.trim();draw();});
+
+  el('rows').addEventListener('click',async e=>{
+    // last line of defence: the buttons are already hidden for a blocked run,
+    // but a stale page could still reach here
+    (function(){
+      const t=e.target.closest('[data-a]'); if(!t) return;
+      const b=(el('rows').__rows||[])[+t.dataset.i];
+      const r=b&&runBlocked(b);
+      if(r && (t.dataset.a==='deliver'||t.dataset.a==='fail')){
+        e.stopImmediatePropagation();
+        say('err','Close run '+r.trip_number+' first — enter the closing KM and diesel above.');
+      }
+    })();
+    const btn=e.target.closest('button[data-a]'); if(!btn)return;
+    const b=el('rows').__rows[+btn.dataset.i]; if(!b)return;
+    if(btn.dataset.a==='print'){
+      btn.disabled=true; const t=btn.textContent; btn.textContent='…';
+      try{ await window.N2K.printLR(b.id); }catch(err){ alert(err.message); }
+      btn.disabled=false; btn.textContent=t; return;
+    }
+    CUR=b; MODE=btn.dataset.a; openModal();
+  });
+
+  function openModal(){
+    const due=DUE(CUR);
+    el('mtitle').textContent = MODE==='deliver' ? 'Mark delivered' : 'Mark undelivered';
+    el('mlr').textContent = CUR.booking_number+' · '+(CUR.receiver_name||'')+' · '+(CUR.total_pieces||0)+' pcs';
+    el('mok').className = 'btn '+(MODE==='deliver'?'ok':'no');
+    el('mok').textContent = MODE==='deliver'?'Confirm delivery':'Mark undelivered';
+    /* "Received by" was removed on the client's instruction: the driver takes a
+       signature on the LR copy at the door, so a typed name added nothing. That
+       leaves nothing to ask unless there is cash to collect. */
+    el('mbody').innerHTML = MODE==='deliver'
+      ? (due?`<div class="duebox">To Pay — collect ${rup(due)}</div>
+           <div class="fld"><label>Amount collected ₹</label>
+             <input id="got" inputmode="numeric" value="${Math.round(due)}"></div>`
+            :`<div style="font-size:13px;color:var(--slate)">Nothing to collect — press confirm to mark it delivered.</div>`)
+      : `<div class="fld"><label>Reason</label>
+           <select id="why">
+             <option>Receiver unavailable</option>
+             <option>Address wrong / not found</option>
+             <option>Receiver refused</option>
+             <option>Payment not ready</option>
+             <option>Shop closed</option>
+             <option>Other</option></select></div>
+         <div class="fld"><label>Note (optional)</label><input id="note" placeholder="Anything the next attempt should know"></div>
+         ${CUR.origin&&CUR.origin.code&&CUR.origin.code!==BR ? `
+         <label class="rettoggle" id="rettoggle">
+           <input type="checkbox" id="retsrc">
+           <div class="t"><b>Return to source</b>
+             <span>Don't retry delivery here. Generates a new LR back to <b>${esc(CUR.origin.code)} \u2014 ${esc(CUR.origin.name||'')}</b>
+               (where this was booked), billed On Account, and links both LRs to each other.</span></div>
+         </label>` : ''}`;
+    const rt=el('retsrc');
+    if(rt) rt.addEventListener('change',()=>el('rettoggle').classList.toggle('on',rt.checked));
+    el('modal').classList.add('open');
+    loadModalMedia(CUR.id);
+  }
+
+  /* Optional photo/video attached at booking, shown here so whoever is
+     closing this LR out (deliver or fail) can see what left the branch.
+     Silent on failure/empty — this is a bonus, never a blocker. */
+  async function loadModalMedia(bookingId){
+    const holder=document.createElement('div');
+    holder.className='mediablock'; holder.id='mmedia';
+    holder.innerHTML='<div class="mh">Attached at booking</div><div class="mediaerr">Loading…</div>';
+    el('mbody').appendChild(holder);
+    try{
+      const items=await window.N2K.bookingMedia.list(bookingId);
+      if(!items.length){ holder.remove(); return; }
+      holder.querySelector('.mh').textContent =
+        'Attached at booking · '+items.filter(m=>m.kind==='photo').length+' photo, '+
+        items.filter(m=>m.kind==='video').length+' video';
+      const grid=document.createElement('div'); grid.className='mgrid';
+      items.forEach((m,i)=>{
+        const d=document.createElement('div'); d.className='mitem'+(m.kind==='video'?'':'');
+        if(m.kind==='photo'){
+          d.innerHTML='<img src="'+m.publicUrl+'" alt="" loading="lazy">';
+        }else{
+          d.innerHTML='<video src="'+m.publicUrl+'" muted preload="metadata"></video>'+
+            '<div class="vidmark"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>';
+        }
+        d.addEventListener('click',()=>openLightbox(m,i+1,items.length));
+        grid.appendChild(d);
+      });
+      holder.appendChild(grid);
+    }catch(e){
+      holder.querySelector('.mh').textContent='Attached at booking';
+      holder.querySelector('.mediaerr').textContent='Could not load attachments — check connection';
+      console.error('booking media load failed:',e);
+    }
+  }
+  function openLightbox(m,idx,total){
+    el('lbtitle').textContent=(m.kind==='video'?'Video':'Photo')+' '+idx+' of '+total;
+    el('lbmedia').innerHTML = m.kind==='photo'
+      ? '<img src="'+m.publicUrl+'" alt="">'
+      : '<video src="'+m.publicUrl+'" controls autoplay></video>';
+    el('lbmodal').classList.add('open');
+  }
+  function closeLightbox(){
+    el('lbmodal').classList.remove('open'); el('lbmedia').innerHTML='';
+  }
+  el('lbclose').addEventListener('click',closeLightbox);
+  el('lbmodal').addEventListener('click',e=>{ if(e.target===el('lbmodal')) closeLightbox(); });
+
+  // reset MODE too: leaving it on a batch mode would make the NEXT single-row
+  // confirmation try to deliver a selection that is no longer there
+  const closeModal=()=>{el('modal').classList.remove('open');CUR=null;MODE='deliver';};
+  el('mcancel').addEventListener('click',closeModal);
+  el('modal').addEventListener('click',e=>{ if(e.target===el('modal')) closeModal(); });
+
+  el('mok').addEventListener('click',async ()=>{
+    if(MODE==='bulkdeliver'){
+      const sel=selected();
+      const amounts={}; let short=0;
+      document.querySelectorAll('.camt').forEach(i=>{
+        const b=sel.find(x=>x.id===i.dataset.id); if(!b) return;
+        const got=parseFloat(i.value)||0;
+        amounts[b.id]=got;
+        if(got<DUE(b)) short+=DUE(b)-got;
+      });
+      if(short && !confirm('Collections are '+rup(short)+' short in total. Record them anyway?')) return;
+      return runDeliver(sel,amounts);
+    }
+    if(MODE==='bulkfail'){
+      const why=el('why').value+((el('note')&&el('note').value.trim())?' \u2014 '+el('note').value.trim():'');
+      return runFail(selected(),why);
+    }
+    if(!CUR)return;
+    const btn=el('mok'); btn.disabled=true; const t=btn.textContent; btn.textContent='Saving…';
+    try{
+      if(MODE==='deliver'){
+        const due=DUE(CUR);
+        let got=due;
+        if(due){ got=parseFloat(el('got').value)||0;
+          if(got<due && !confirm('Collected '+rup(got)+' but '+rup(due)+' is due. Record short collection?')){
+            btn.disabled=false; btn.textContent=t; return; } }
+        await window.N2K.deliverBooking(CUR.id,{cod:due?got:null});
+        say('ok',CUR.booking_number+' delivered'+(due?' · '+rup(got)+' collected':'')+'.');
+      }else{
+        const why=el('why').value+((el('note').value.trim())?' — '+el('note').value.trim():'');
+        const rt=el('retsrc');
+        if(rt && rt.checked){
+          const res=await window.N2K.returnToSource(CUR.id,BR,why);
+          say('ok',CUR.booking_number+' marked undelivered \u00b7 returned. New return LR '+res.lr+' created back to '+
+            (CUR.origin?CUR.origin.code:'source')+' \u2014 it will show on their Trip screen, and on yours once you load it.');
+        }else{
+          await window.N2K.failBooking(CUR.id,why);
+          say('ok',CUR.booking_number+' marked undelivered — it stays here and returns to Trip for the next sheet.');
+        }
+      }
+      closeModal(); await load();
+    }catch(e){ say('err','Could not update — '+e.message); }
+    btn.disabled=false; btn.textContent=t;
+  });
+
+  /* ---- runs waiting to be closed ---- */
+  async function loadRuns(){
+    if(!BR) return;
+    let runs=[];
+    /* This used to hide the whole panel when there were no runs, and to swallow
+       any error and return. Between them, a missing panel could mean four
+       different things and the screen said none of them. Now it always shows,
+       and says which. */
+    try{ runs=await window.N2K.runsFor(BR); }
+    catch(e){
+      el('runcard').style.display='block';
+      el('runrows').innerHTML='<div class="runrow" style="color:var(--red)">'+
+        'Could not load runs \u2014 '+esc(e.message||e)+'</div>';
+      return;
+    }
+    const open=runs.filter(r=>!r.closed_at);
+    el('runcard').style.display='block';
+    if(!runs.length){
+      el('runrows').innerHTML='<div class="runrow" style="color:var(--slate);display:block">'+
+        '<b>No runs created by '+esc(BR)+' today.</b><br>'+
+        'A run is closed by the branch that created it on Trip. '+
+        'If the vehicle is out, create the run under Trip first \u2014 or check the date, '+
+        'since only today\u2019s runs appear here.</div>';
+      el('runcard').querySelector('.ch .m').textContent='nothing to close';
+      return;
+    }
+    el('runrows').innerHTML=runs.map(r=>{
+      if(r.closed_at) return `<div class="runrow"><span class="tn">${r.trip_number}</span>
+        <span class="mid">${esc(r.vehicle||'')} · ${esc(r.driver||'')} · ${r.stops} stops</span>
+        <span class="done">✓ closed · ${r.run_km??'—'} km${r.diesel_litres?' · '+r.diesel_litres+' L':''}</span></div>`;
+      return `<div class="runrow" data-id="${r.id}">
+        <span class="tn">${r.trip_number}</span>
+        <span class="mid">${esc(r.vehicle||'no vehicle')} · ${esc(r.driver||'no driver')}${r.helper?' / '+esc(r.helper):''}
+          · ${r.stops} stops · ${r.pieces} pcs · opening KM <b>${r.open_km??'not set'}</b></span>
+        <span class="f"><label>Closing KM</label><input class="ckm" inputmode="numeric"
+          data-open="${r.open_km??''}" placeholder="${r.open_km?('> '+r.open_km):'odometer'}"></span>
+        <span class="f"><label>Run KM</label><b class="runkm" style="font-family:var(--mono);font-size:14px">&mdash;</b></span>
+        <span class="f"><label>Diesel L</label><input class="dsl" inputmode="decimal" placeholder="litres"></span>
+        <button class="btn ok closebtn">Close run</button></div>`;
+    }).join('');
+    el('runcard').querySelector('.ch .m').textContent = open.length
+      ? open.length+' run(s) still out' : 'all runs closed for today';
+  }
+  // Run KM = closing odometer - opening odometer, shown live before saving.
+  // This same closing reading is what drives the "service due by KM" alert on
+  // the Dashboard, so a wrong figure here moves the service alert too.
+  el('runrows').addEventListener('input',e=>{
+    const inp=e.target.closest('.ckm'); if(!inp)return;
+    const out=inp.closest('.runrow').querySelector('.runkm');
+    const open=parseInt(inp.dataset.open,10), close=parseInt(inp.value,10);
+    if(isNaN(close)||isNaN(open)){ out.textContent='\u2014'; out.style.color=''; return; }
+    const run=close-open;
+    if(run<0){ out.textContent='check reading'; out.style.color='var(--red)'; }
+    else { out.textContent=run+' km'; out.style.color='var(--green)'; }
+  });
+
+  el('runrows').addEventListener('click',async e=>{
+    const b=e.target.closest('.closebtn'); if(!b)return;
+    const row=b.closest('.runrow');
+    const ckm=row.querySelector('.ckm').value.trim();
+    const dsl=row.querySelector('.dsl').value.trim();
+    if(!ckm){ say('err','Enter the closing KM from the odometer.'); row.querySelector('.ckm').focus(); return; }
+    /* This reading becomes the OPENING KM of the vehicle's next run, and it
+       drives the service-due-by-KM alert. A wrong figure here propagates, so
+       it is checked harder than it was. */
+    const ckmN=parseInt(ckm,10);
+    const okmN=parseInt(row.querySelector('.ckm').dataset.open,10);
+    if(isNaN(ckmN)){ say('err','Closing KM must be a number.'); return; }
+    if(!isNaN(okmN) && ckmN<okmN){
+      say('err','Closing KM ('+ckmN+') is below the opening KM ('+okmN+'). Check the odometer.');
+      row.querySelector('.ckm').focus(); return;
+    }
+    if(!isNaN(okmN) && ckmN-okmN>1500 &&
+       !confirm('That is '+(ckmN-okmN)+' km for one run. Is the reading right?')) return;
+    b.disabled=true; const t=b.textContent; b.textContent='…';
+    try{
+      await window.N2K.closeRun(row.dataset.id,ckmN,dsl===''?null:parseFloat(dsl));
+      say('ok','Run closed — '+ckmN+' km recorded. This becomes the opening KM of the next run for this vehicle.');
+      /* Reload the consignments too, not just the run panel. Closing a run is
+         what unlocks its consignments for delivery, so leaving the list as it
+         was meant the padlocks stayed until the agent thought to refresh. */
+      await Promise.all([loadRuns(), load()]);
+    }catch(err){ say('err',err.message); b.disabled=false; b.textContent=t; }
+  });
+
+  /* Both queries go out together and the page is revealed when both have
+     answered, rather than the consignments appearing and the run panel
+     dropping in after them. */
+  if(BR){
+    (async()=>{
+      const wrap=document.querySelector('.wrap');
+      if(wrap) wrap.style.transition='opacity .15s';   // already hidden in the markup
+      try{ await Promise.all([load(),loadRuns()]); }
+      catch(e){ console.error('delivery load failed:',e); }
+      finally{ if(wrap) wrap.style.opacity='1'; }
+    })();
+  }
+  /* The minute refresh used to reload only the consignments, so a run closed
+     on another device left this screen showing padlocks — and a run created
+     elsewhere left consignments unlocked that should not be. Refresh both. */
+  setInterval(()=>{
+    if(BR && !document.hidden && !el('modal').classList.contains('open')){
+      load(); loadRuns();
+    }
+  },60000);
+</script>
+</body>
+</html>

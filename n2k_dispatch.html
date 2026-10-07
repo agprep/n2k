@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2F4079">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="icon" href="icons/favicon-16.png" sizes="16x16">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="N2K">
+<title>N2K Logistics — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="n2k_db.js"></script>
+<script>
+/* If the Supabase library does not arrive — slow line, blocked CDN, captive
+   wifi — every page sits on "loading…" for ever with no explanation, because
+   each data call fails separately with "Cannot read properties of null". Say so
+   once, plainly, instead. */
+window.addEventListener('DOMContentLoaded',function(){
+  if (window.supabase) return;
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:#C0392B;'+
+    'color:#fff;padding:11px 16px;font:600 13.5px Inter,Arial,sans-serif;text-align:center';
+  d.innerHTML='No connection to the database \u2014 the page cannot load data. '+
+    'Check the internet connection and reload.';
+  document.body.insertBefore(d, document.body.firstChild);
+});
+</script>
+
+<style>
+  :root{
+    --navy:#2F4079; --ink:#1B2340; --red:#C0392B; --green:#2E7D5B; --amber:#C77A26;
+    --bg:#F4F6FA; --card:#FFFFFF; --tint:#EEF1F7; --tint2:#F8FAFC; --slate:#6A7386; --line:#E4E8F0;
+    --display:'Archivo',sans-serif; --body:'Inter',sans-serif; --mono:'IBM Plex Mono',monospace;
+    --shadow:0 1px 2px rgba(37,49,92,.05),0 6px 18px rgba(37,49,92,.05);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--body);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{text-decoration:none;color:inherit}
+  .mono{font-family:var(--mono)}
+
+  .topbar{display:flex;align-items:center;gap:14px;padding:11px 24px;background:var(--card);
+    border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:9px;font-family:var(--display);font-weight:900;color:var(--navy);font-size:18px}
+  .brand .blogo{height:26px;width:auto;display:block}
+  .brand .pin{position:relative;width:19px;height:25px}
+  .brand .pin svg{width:100%;height:100%}
+  .brand .pin i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-style:normal;color:#fff;font-size:12px;font-weight:900;padding-bottom:4px}
+  .branchsel{display:flex;align-items:center;gap:7px;border:1.5px solid var(--line);border-radius:10px;
+    padding:7px 12px;font-weight:700;font-size:13.5px;color:var(--navy);background:var(--tint2)}
+  .branchsel .mono{font-weight:500;color:var(--slate);font-size:12px}
+  .search{flex:1;min-width:180px;max-width:420px;display:flex;align-items:center;gap:8px;
+    border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--tint2)}
+  .search svg{width:15px;height:15px;color:var(--slate);flex-shrink:0}
+  .search input{border:0;outline:0;background:none;font-family:var(--body);font-size:13.5px;width:100%;color:var(--ink)}
+  .clock{margin-left:auto;font-family:var(--mono);font-size:12.5px;color:var(--slate)}
+
+  .wrap{max-width:1600px;margin:0 auto;padding:20px 24px 70px}
+  .pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  h1{font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:-.5px}
+  .pagehead .sub{font-size:13px;color:var(--slate);margin-top:3px}
+  .pagehead .upd{font-size:12px;color:var(--slate)}
+  .pagehead .upd b{font-family:var(--mono);color:var(--ink);font-weight:600}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#C3CBDD;margin-right:5px;
+    vertical-align:middle;transition:background .2s}
+  .dot.on{background:var(--green)}
+  .dot.flash{background:var(--red);animation:flash .8s}
+  @keyframes flash{0%{transform:scale(1.6)}100%{transform:scale(1)}}
+
+  .stages{display:grid;grid-template-columns:repeat(6,1fr);gap:11px;margin-bottom:18px}
+  .stage{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:13px 14px;
+    box-shadow:var(--shadow);cursor:pointer;transition:border-color .12s,transform .1s;text-align:left;
+    font-family:var(--body)}
+  .stage:hover{border-color:#C3CBDD;transform:translateY(-1px)}
+  .stage.on{border-color:var(--navy);box-shadow:0 0 0 3px rgba(47,64,121,.10)}
+  .stage .lab{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--slate);font-weight:500}
+  .stage .num{font-family:var(--display);font-weight:800;font-size:27px;letter-spacing:-1px;margin-top:5px;line-height:1}
+  .stage .ctx{font-size:11.5px;color:var(--slate);margin-top:3px}
+  .stage.alert .num{color:var(--red)}
+  .stage.alert{border-color:rgba(192,57,43,.30);background:linear-gradient(180deg,rgba(192,57,43,.04),#fff)}
+
+  .legend{font-size:12px;color:var(--slate);background:var(--card);border:1px solid var(--line);
+    border-radius:11px;padding:9px 14px;margin:-6px 0 16px}
+  .legend b{color:var(--ink)}
+  .legend a{color:var(--navy);font-weight:700}
+    .grid2{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(320px,1fr);gap:16px;
+    margin-bottom:16px;align-items:start}
+  .side{display:flex;flex-direction:column;gap:16px}
+  .scrolly{max-height:430px;overflow-y:auto}
+  .glance{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line)}
+  .glance > div{background:var(--card);padding:12px 15px}
+  .glance .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--slate)}
+  .glance .v{font-family:var(--display);font-weight:800;font-size:19px;margin-top:4px;letter-spacing:-.4px}
+  .glance .s{font-size:11px;color:var(--slate);margin-top:1px}
+  .paylist{border-top:1px solid var(--line)}
+  .payrow{display:grid;grid-template-columns:auto 52px 1fr auto;align-items:center;gap:9px;
+    padding:8px 15px;border-bottom:1px solid var(--line);font-size:12.5px}
+  .payrow:last-child{border-bottom:0}
+  .payrow .cnt{font-family:var(--mono);font-size:11px;color:var(--slate);text-align:right}
+  .payrow .amt{font-family:var(--mono);font-weight:600;font-size:13px;text-align:right;min-width:74px}
+  .payrow .lab{font-weight:700}
+  .payrow .bar{height:6px;border-radius:3px;background:var(--tint);overflow:hidden}
+  .payrow .bar i{display:block;height:100%;background:var(--navy)}
+  .payrow .bar i.green{background:var(--green)} .payrow .bar i.amber{background:var(--amber)}
+  .payrow .bar i.blue{background:var(--navy)}  .payrow .bar i.grey{background:#B9C0CF}
+  .payrow.total{background:var(--tint2);font-weight:800}
+  .payrow.total .amt{font-weight:800}
+  .payrow.collect .lab,.payrow.collect .amt{color:var(--red)}
+  .payrow.collect{background:rgba(192,57,43,.04)}
+  .payrow.credit .lab,.payrow.credit .amt{color:var(--navy)}
+  .payrow.credit{background:rgba(47,64,121,.04)}
+  .brlist{max-height:220px;overflow-y:auto}
+  .brrow{display:flex;align-items:center;gap:10px;padding:9px 15px;border-bottom:1px solid var(--line);font-size:12.5px}
+  .brrow:last-child{border-bottom:0}
+  .brrow .nm{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brrow .bar{width:64px;height:6px;border-radius:3px;background:var(--tint);overflow:hidden;flex-shrink:0}
+  .brrow .bar i{display:block;height:100%;background:var(--navy)}
+  .brrow .n{font-family:var(--mono);font-size:12px;width:26px;text-align:right}
+  .grid2 > *{min-width:0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);overflow:hidden}
+  .card > .ch{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    padding:13px 17px;border-bottom:1px solid var(--line)}
+  .ch h2{font-family:var(--display);font-weight:800;font-size:15px}
+  .ch .m{font-size:12px;color:var(--slate)}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--red)}
+  .live .d{width:7px;height:7px;border-radius:50%;background:var(--red);animation:pulse 1.8s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+  .tw{overflow-x:auto}
+  table{width:100%;border-collapse:collapse}
+  th{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--slate);
+    font-weight:500;text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:11px 14px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}
+  tbody tr:last-child td{border-bottom:0}
+  td.r,th.r{text-align:right}
+  td.mono{font-family:var(--mono);font-size:12.5px}
+  tbody tr:hover{background:var(--tint2)}
+  .sub2{font-size:11.5px;color:var(--slate);margin-top:2px}
+
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap}
+  .pill.grey{background:var(--tint);color:var(--slate)}
+  .pill.blue{background:rgba(47,64,121,.10);color:var(--navy)}
+  .pill.amber{background:rgba(199,122,38,.13);color:var(--amber)}
+  .pill.red{background:rgba(192,57,43,.10);color:var(--red)}
+  .pill.green{background:rgba(46,125,91,.10);color:var(--green)}
+
+  .att{display:flex;gap:11px;align-items:flex-start;padding:12px 17px;border-bottom:1px solid var(--line)}
+  .att:last-child{border-bottom:0}
+  .att .ic{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .att.red .ic{background:rgba(192,57,43,.10);color:var(--red)}
+  .att.amber .ic{background:rgba(199,122,38,.13);color:var(--amber)}
+  .att .ic svg{width:15px;height:15px}
+  .att .t{font-weight:700;font-size:13px}
+  .att .s{font-size:11.5px;color:var(--slate);margin-top:2px}
+
+  /* media presence badge in the bookings table — blank cell when an LR has
+     nothing attached, since that's most of them; only shows up when there
+     is something to check */
+  .mediabtn{border:0;background:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;
+    padding:4px 7px;border-radius:8px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--navy)}
+  .mediabtn:hover{background:var(--tint)}
+  .mediabtn svg{width:12.5px;height:12.5px}
+
+  /* lightbox: full-size photo / playable video, with a strip to switch
+     between everything attached to that LR */
+  .lbmodal{display:none;position:fixed;inset:0;z-index:70;background:rgba(15,20,36,.82);
+    align-items:center;justify-content:center;padding:20px}
+  .lbmodal.open{display:flex}
+  .lbwrap{position:relative;max-width:560px;width:100%;background:#0F1424;border-radius:16px;overflow:hidden}
+  .lbwrap .lbtop{display:flex;justify-content:space-between;align-items:center;padding:11px 15px;
+    color:#fff;font-size:12.5px;font-family:var(--mono)}
+  .lbwrap .lbclose{background:rgba(255,255,255,.14);border:0;color:#fff;width:26px;height:26px;
+    border-radius:50%;cursor:pointer;font-size:14px;line-height:1}
+  .lbwrap .lbmedia{width:100%;max-height:60vh;display:flex;align-items:center;justify-content:center;background:#000}
+  .lbwrap .lbmedia img,.lbwrap .lbmedia video{width:100%;max-height:60vh;object-fit:contain;display:block}
+  .lbstrip{display:flex;gap:7px;padding:11px 15px;overflow-x:auto}
+  .lbthumb{position:relative;width:46px;height:46px;border-radius:8px;overflow:hidden;flex-shrink:0;
+    border:2px solid transparent;cursor:pointer;background:var(--tint2)}
+  .lbthumb.on{border-color:#fff}
+  .lbthumb img,.lbthumb video{width:100%;height:100%;object-fit:cover;display:block}
+  .lbthumb .vm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.25);pointer-events:none}
+  .lbthumb .vm svg{width:12px;height:12px;color:#fff}
+
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:6px 13px;
+    font-weight:600;font-size:12.5px;cursor:pointer;font-family:var(--body);color:var(--slate)}
+  .chip.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  .tbtn{border:1.5px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;font-size:11.5px;
+    font-weight:700;color:var(--navy);cursor:pointer;font-family:var(--body)}
+  .tbtn:hover{border-color:#C3CBDD}
+  /* cancel icon: pale until reached for, so a long list does not read as a
+     wall of warnings */
+  .ico{width:30px;height:30px;border:0;background:none;border-radius:8px;cursor:pointer;
+    color:#B6BDCC;display:inline-flex;align-items:center;justify-content:center;
+    vertical-align:middle;transition:color .12s,background .12s}
+  .ico svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;
+    stroke-linecap:round;stroke-linejoin:round}
+  .ico:hover{color:var(--red);background:rgba(192,57,43,.09)}
+  .ico.lockd{color:#D6DAE4;cursor:not-allowed}
+  .ico.lockd:hover{background:none;color:#D6DAE4}
+  .tipwrap{position:relative;display:inline-flex}
+  .tip{position:absolute;right:100%;top:50%;transform:translateY(-50%);margin-right:7px;
+    background:var(--ink);color:#fff;font-size:11.5px;font-weight:600;padding:5px 9px;
+    border-radius:7px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:30}
+  .tip.wide{white-space:normal;width:190px;line-height:1.4;text-align:left}
+  .tipwrap:hover .tip{opacity:1}
+  .cwho{font-size:11px;color:var(--slate)}
+  .empty{padding:26px 17px;text-align:center;color:var(--slate);font-size:13px}
+  /* expiry alerts */
+  .alcard{margin-bottom:16px}
+  .albuckets{display:flex;gap:7px;flex-wrap:wrap}
+  .alb{border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:6px 13px;
+    font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--body);color:var(--slate)}
+  .alb.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  .alb.gone{border-color:rgba(192,57,43,.45);color:var(--red)}
+  .alb.gone.on{background:var(--red);border-color:var(--red);color:#fff}
+  .alb .n{font-family:var(--mono);font-size:11px;opacity:.8;margin-left:4px}
+  .altab{width:100%;border-collapse:collapse;font-size:13px}
+  .altab th{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--slate);text-align:left;padding:8px 17px;border-bottom:1px solid var(--line)}
+  .altab td{padding:10px 17px;border-bottom:1px solid var(--line);vertical-align:middle}
+  .altab tr:last-child td{border-bottom:0}
+  .altab tr.gone td{background:rgba(192,57,43,.04)}
+  .alwho{font-weight:700}
+  .alref{font-size:11.5px;color:var(--slate);margin-top:2px}
+  .alscope{font-size:10.5px;font-weight:700;color:var(--slate)}
+  .empty b{display:block;color:var(--ink);margin-bottom:3px}
+
+  @media (min-width:1500px){ .grid2{grid-template-columns:minmax(0,1.9fr) minmax(340px,1fr)}
+    .side{display:grid;grid-template-columns:1fr;gap:16px} }
+  @media (max-width:1000px){ .stages{grid-template-columns:repeat(3,1fr)} .grid2{grid-template-columns:1fr}
+    .scrolly{max-height:none} }
+  @media (max-width:620px){ .stages{grid-template-columns:repeat(2,1fr)} .search{display:none} }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="./"><img class="blogo" src="data:image/png;base64,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" alt="N2K Logistics"></a>
+  <div class="branchsel" id="brchip">All branches <span class="mono" id="brcode"></span></div>
+  <label class="search">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+    <input id="q" placeholder="Search LR or consignee…" autocomplete="off">
+  </label>
+  <span class="clock" id="clock">—</span>
+</div>
+
+<style id="n2k-boot">.wrap{opacity:0}</style>
+<script>
+/* Revealed by the page once its data is in. This timer is the backstop: if the
+   page's own code fails before it gets there, the content still appears rather
+   than the user staring at nothing. */
+setTimeout(function(){
+  var w=document.querySelector('.wrap');
+  if(w && getComputedStyle(w).opacity==='0'){ w.style.transition='opacity .15s'; w.style.opacity='1'; }
+},6000);
+</script>
+<div class="wrap">
+  <div class="pagehead">
+    <div><h1>Dashboard</h1><div class="sub" id="mesub">—</div></div>
+    <div class="upd"><span class="dot" id="livedot" title="live connection"></span>
+      Updated <b id="upd">—</b> · <span id="mode">checking…</span></div>
+  </div>
+
+  <div class="stages" id="stages"></div>
+
+  <div class="card alcard" id="alcard" style="display:none">
+    <div class="ch">
+      <div><h2>Alerts <span class="pill red" id="alcount"></span></h2>
+        <div class="sub2" id="alsub">Licence, insurance, permit, pollution and service validity</div></div>
+      <div class="albuckets" id="albuckets"></div>
+    </div>
+    <div id="albody"></div>
+  </div>
+
+  <div class="card" id="shortcard" style="display:none">
+    <div class="ch">
+      <div><h2>Cash shortages <span class="pill red" id="shortcount"></span></h2>
+        <div class="sub2" id="shortsub">Collected less than the To Pay amount due at delivery — not yet settled</div></div>
+    </div>
+    <div class="tw"><table><thead><tr>
+      <th>LR</th><th>Consignee</th><th class="r">Due</th><th class="r">Collected</th><th class="r">Short</th>
+      <th>Delivered</th><th id="shortbrh" style="display:none">Branch</th><th></th>
+    </tr></thead><tbody id="shortbody"></tbody></table></div>
+  </div>
+  <div class="legend">
+    <b>Today</b> = booked / delivered today &nbsp;·&nbsp; <b>Open now</b> = still in the pipeline from any date,
+    so nothing gets lost overnight. For a specific period use <a href="n2k_reports.html">Reports</a>.
+  </div>
+
+  <div class="grid2">
+    <div class="card" id="bkcard">
+      <div class="ch">
+        <h2 id="bktitle">Bookings</h2>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+          <div class="chips" id="periods">
+            <button class="chip on" data-p="today">Today</button>
+            <button class="chip" data-p="7">7 days</button>
+            <button class="chip" data-p="30">30 days</button>
+            <button class="chip" data-p="all">All</button>
+          </div>
+          <div class="chips" id="chips">
+            <button class="chip" data-f="attention">Needs attention only</button>
+          </div>
+        </div>
+      </div>
+      <div id="bookings"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="side">
+      <div class="card">
+        <div class="ch"><h2>Needs attention <span class="m" style="font-weight:400">· open items</span></h2><span class="m" id="attcount"></span></div>
+        <div id="atts"><div class="empty">Loading…</div></div>
+      </div>
+      <div class="card">
+        <div class="ch"><h2>Today at a glance</h2><span class="m" id="paymeta"></span></div>
+        <div class="glance" id="glance"></div>
+        <div class="paylist" id="paylist"></div>
+      </div>
+      <div class="card" id="brcard">
+        <div class="ch"><h2 id="brtitle">Booking activity today</h2><span class="m" id="brm"></span></div>
+        <div class="brlist" id="brlist"><div class="empty">Loading…</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="lbmodal" id="lbmodal">
+  <div class="lbwrap">
+    <div class="lbtop"><span id="lbtitle">—</span><button class="lbclose" id="lbclose">×</button></div>
+    <div class="lbmedia" id="lbmedia"></div>
+    <div class="lbstrip" id="lbstrip"></div>
+  </div>
+</div>
+
+<script>
+  const __me=window.N2K.requireRole(['admin','booking_agent']); if(!__me)throw new Error('redirect');
+  window.N2K.mountNav('dispatch');
+  const IS_ADMIN=__me.role==='admin';
+  const SCOPE=IS_ADMIN?null:(__me.branch||null);
+  const el=id=>document.getElementById(id);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const rup=n=>'\u20B9'+Math.round(n||0).toLocaleString('en-IN');
+  const age=ms=>window.N2K.ageText(ms);
+
+  const STAGES=[
+    {k:'booked',    lab:'Booked today',    ctx:'today · new bookings',
+      st:['booked','received_at_origin','sorted','loaded','departed','in_transit','arrived_at_destination','out_for_delivery']},
+    {k:'pending',   lab:'Pending delivery',ctx:'open now · any date',
+      st:['booked','received_at_origin','sorted','loaded','departed','in_transit','arrived_at_hub','arrived_at_destination','out_for_delivery']},
+    {k:'delivered', lab:'Delivered today', ctx:'today · completed', st:['delivered']},
+    {k:'failed',    lab:'Failed',          ctx:'open now · retry needed', st:['delivery_failed'], alert:true},
+    {k:'value',     lab:'Booked value',    ctx:'today', money:true, st:[]},
+    {k:'collect',   lab:'To collect',      ctx:'To Pay, pending', money:true, alert:true, st:['booked','received_at_origin','sorted','loaded','departed','in_transit','arrived_at_destination','out_for_delivery']}
+  ];
+  let COUNTS={}, ROWS=[], FILTER='all', STAGEF=null, QUERY='', PERIOD='today';
+  const PERIOD_LAB={today:'today',7:'last 7 days',30:'last 30 days',all:'all dates'};
+  function inPeriod(b){
+    if(PERIOD==='all') return true;
+    const t=new Date(b.created_at).getTime();
+    if(PERIOD==='today'){ const d=new Date(); d.setHours(0,0,0,0); return t>=d.getTime(); }
+    return t >= Date.now()-Number(PERIOD)*864e5;
+  }
+
+  (function(){
+    const br=__me.branch;
+    if(br){ el('brchip').firstChild.textContent=(__me.branchName||br)+' '; el('brcode').textContent=br; }
+    el('mesub').innerHTML = IS_ADMIN ? 'All branches \u00b7 company-wide view'
+      : 'Your branch only \u00b7 <span class="mono">'+(br||'\u2014')+'</span>'+(__me.branchName?' \u00b7 '+__me.branchName:'');
+  })();
+  function tick(){ el('clock').textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+' IST'; }
+  tick(); setInterval(tick,20000);
+
+  const PILL=s=>({booked:'grey',received_at_origin:'grey',sorted:'grey',loaded:'blue',departed:'blue',
+    in_transit:'blue',arrived_at_hub:'amber',arrived_at_destination:'amber',out_for_delivery:'amber',
+    delivered:'green',delivery_failed:'red',returned:'red'}[s]||'grey');
+  const isAttention=b=>b.status!=='cancelled' && (b.status==='delivery_failed' ||
+    (b.status==='booked' && (Date.now()-new Date(b.created_at).getTime())>2*3600e3));
+
+  function drawStages(){
+    el('stages').innerHTML=STAGES.map(s=>`
+      <button class="stage ${s.alert?'alert':''} ${STAGEF===s.k?'on':''}" data-k="${s.k}"
+        style="${s.st?'':'cursor:default'}">
+        <div class="lab">${s.lab}</div>
+        <div class="num">${COUNTS[s.k]==null?'\u2014':(s.money?rup(COUNTS[s.k]):COUNTS[s.k])}</div>
+        <div class="ctx">${STAGEF===s.k?'filtering below \u00b7 click to clear':s.ctx}</div></button>`).join('');
+  }
+  el('stages').addEventListener('click',e=>{
+    const b=e.target.closest('.stage'); if(!b)return;
+    const def=STAGES.find(s=>s.k===b.dataset.k);
+    if(def && def.money && !def.st.length) return;
+    const st=STAGES.find(x=>x.k===b.dataset.k);
+    if(!st||!st.st) return;                    // money tiles are not filters
+    STAGEF=(STAGEF===b.dataset.k)?null:b.dataset.k;
+    drawStages(); drawBookings();
+  });
+
+  async function loadCounts(){
+    try{ COUNTS=await window.N2K.dispatchCounts(SCOPE); }catch(e){ console.warn('counts',e.message); }
+    drawStages();
+    el('upd').textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  }
+
+
+  async function loadAtts(){
+    try{
+      const sb=window.N2K.sb, out=[];
+      // three independent reads — none needs another's result, so they go
+      // out together instead of one after another (was 3x the wait for no
+      // reason: this panel alone used to take three round trips in a row).
+      const [un,fl,dv]=await Promise.all([
+        sb.from('bookings').select('booking_number,created_at,origin:origin_facility_id(code)')
+          .eq('status','booked').order('created_at').limit(200),
+        sb.from('bookings')
+          .select('booking_number,receiver_name,origin:origin_facility_id(code),dest:destination_facility_id(code)')
+          .eq('status','delivery_failed').limit(30),
+        sb.from('drivers').select('license_expiry,user:user_id(full_name,is_active)').limit(60)
+      ]);
+      let U=(un.data||[]); if(SCOPE) U=U.filter(b=>b.origin&&b.origin.code===SCOPE);
+      const old=U.filter(b=>(Date.now()-new Date(b.created_at).getTime())>2*3600e3);
+      if(old.length) out.push({k:'amber',t:old.length+' booking(s) waiting over 2 hours',
+        s:'oldest '+age(Date.now()-new Date(old[0].created_at).getTime())+' \u00b7 not yet loaded onto a trip'});
+      else if(U.length) out.push({k:'amber',t:U.length+' booking(s) awaiting loading',s:'all within 2 hours'});
+      let FL=(fl.data||[]); if(SCOPE) FL=FL.filter(b=>(b.origin&&b.origin.code===SCOPE)||(b.dest&&b.dest.code===SCOPE));
+      FL.forEach(b=>out.push({k:'red',t:'Delivery failed \u00b7 '+b.booking_number,
+        s:esc(b.receiver_name||'')+' \u2014 needs rescheduling'}));
+      (dv.data||[]).forEach(d=>{ if(d.license_expiry && d.user && d.user.is_active){
+        const days=Math.round((new Date(d.license_expiry)-Date.now())/864e5);
+        if(days<=30) out.push({k:'amber',t:'Driver licence '+(days<0?'EXPIRED':'expiring'),
+          s:esc(d.user.full_name||'')+' \u00b7 '+(days<0?'renew immediately':days+' days left')}); }});
+      el('attcount').textContent=out.length?out.length+' item(s)':'';
+      el('atts').innerHTML = out.length ? out.map(x=>`<div class="att ${x.k}">
+          <div class="ic"><svg fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 8v5M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg></div>
+          <div><div class="t">${x.t}</div><div class="s">${x.s}</div></div></div>`).join('')
+        : '<div class="empty"><b>Nothing needs attention</b>Delays, failed deliveries and expiring licences appear here.</div>';
+    }catch(e){ el('atts').innerHTML='<div class="empty" style="color:var(--red)"><b>Cannot load exceptions</b>'+esc(e.message)+'</div>'; }
+  }
+
+  async function loadBookings(){
+    try{
+      let rows=await window.N2K.recentBookings(400);
+      if(SCOPE) rows=rows.filter(b=>(b.origin&&b.origin.code===SCOPE)||(b.dest&&b.dest.code===SCOPE));
+      ROWS=rows;
+    }catch(e){
+      el('bookings').innerHTML='<div class="empty" style="color:var(--red)"><b>Cannot load bookings</b>'+esc(e.message)+'</div>';
+      return;
+    }
+    drawBookings();
+    drawGlance();
+  }
+
+  function drawGlance(){
+    const d0=new Date(); d0.setHours(0,0,0,0);
+    /* Cancelled consignments stay in the LIST — the agent needs to see what
+       happened and reprint the stamped copy — but they are excluded from every
+       figure here. A cancelled LR earned nothing and carried nothing. */
+    const today=ROWS.filter(b=>new Date(b.created_at)>=d0 && b.status!=='cancelled');
+    const num=v=>parseFloat(v)||0;
+    const val=today.reduce((a,b)=>a+num(b.grand_total),0);
+    const pcs=today.reduce((a,b)=>a+(b.total_pieces||0),0);
+    const del=(COUNTS.delivered!=null?COUNTS.delivered:0);
+    const rate=today.length?Math.round(del/today.length*100):0;
+
+    // money by payment mode
+    const MODES=[
+      {k:'prepaid',           lab:'Paid',              cls:'green'},
+      {k:'to_pay',            lab:'To Pay',            cls:'amber'},
+      {k:'on_account',        lab:'On Account',        cls:'blue'},
+      {k:'on_account_to_pay', lab:'On Acct To Pay',    cls:'blue'}
+    ];
+    const rows=MODES.map(m=>{
+      const set=today.filter(b=>b.payment_type===m.k);
+      return {...m, n:set.length, amt:set.reduce((a,b)=>a+num(b.grand_total),0)};
+    }).filter(r=>r.n>0);
+    const unknown=today.filter(b=>!b.payment_type);
+    if(unknown.length) rows.push({k:'?',lab:'Not recorded',cls:'grey',n:unknown.length,
+      amt:unknown.reduce((a,b)=>a+num(b.grand_total),0)});
+    const maxAmt=rows.reduce((a,r)=>Math.max(a,r.amt),0)||1;
+    // cash still to be collected at delivery = To Pay not yet delivered
+    const collect=today.filter(b=>b.payment_type==='to_pay'&&b.status!=='delivered')
+      .reduce((a,b)=>a+num(b.grand_total),0);
+    // on-account business is billed to the customer's account, not collected in cash
+    const credit=today.filter(b=>['on_account','on_account_to_pay'].includes(b.payment_type))
+      .reduce((a,b)=>a+num(b.grand_total),0);
+    // cash actually taken at the counter today, by transaction mode
+    const paidRows=today.filter(b=>b.payment_type==='prepaid');
+    const byMode={};
+    paidRows.forEach(b=>{const k=(b.transaction_mode||'not set').toUpperCase();
+      byMode[k]=(byMode[k]||0)+num(b.grand_total);});
+    const modeLine=Object.entries(byMode).sort((a,b)=>b[1]-a[1])
+      .map(([k,v])=>k+' '+rup(v)).join(' · ');
+
+    el('glance').innerHTML=
+      `<div><div class="k">Booked value</div><div class="v">${rup(val)}</div>
+         <div class="s">${today.length} LR · ${pcs} pcs</div></div>
+       <div><div class="k">Delivered today</div><div class="v">${del}</div>
+         <div class="s">${rate}% of today's bookings</div></div>`;
+
+    el('paylist').innerHTML = rows.length ? rows.map(r=>`<div class="payrow">
+          <span class="pill ${r.cls}">${r.lab}</span>
+          <span class="cnt">${r.n} LR</span>
+          <span class="bar"><i class="${r.cls}" style="width:${Math.round(r.amt/maxAmt*100)}%"></i></span>
+          <span class="amt">${rup(r.amt)}</span></div>`).join('')
+        + `<div class="payrow total">
+             <span class="lab">Total booked</span><span class="cnt">${today.length} LR</span>
+             <span class="bar"></span><span class="amt">${rup(val)}</span></div>
+           <div class="payrow collect">
+             <span class="lab">Cash to collect</span><span class="cnt">To Pay</span>
+             <span class="bar"></span><span class="amt">${rup(collect)}</span></div>
+           <div class="payrow credit">
+             <span class="lab">On credit</span><span class="cnt">billed later</span>
+             <span class="bar"></span><span class="amt">${rup(credit)}</span></div>`
+      : '<div class="empty">No bookings yet today.</div>';
+    el('paymeta').textContent = modeLine ? ('Paid via ' + modeLine) : '';
+
+    // branch / destination activity
+    const byKey={};
+    today.forEach(b=>{ const k=IS_ADMIN?((b.origin&&b.origin.code)||'—')
+                                       :((b.dest&&b.dest.code)||'—');
+      byKey[k]=(byKey[k]||0)+1; });
+    const list=Object.entries(byKey).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const max=list.length?list[0][1]:1;
+    el('brtitle').textContent=IS_ADMIN?'Booking activity today':'Where your cargo is going today';
+    el('brm').textContent=list.length?(IS_ADMIN?list.length+' branch(es)':list.length+' destination(s)'):'';
+    el('brlist').innerHTML=list.length?list.map(([k,n])=>`<div class="brrow">
+        <span class="nm">${k}</span>
+        <span class="bar"><i style="width:${Math.round(n/max*100)}%"></i></span>
+        <span class="n">${n}</span></div>`).join('')
+      : '<div class="empty">No bookings yet today.</div>';
+  }
+
+  /* ---------- cancelling from the list ----------
+     A quiet icon rather than a red button: a list of thirty bookings should not
+     read as thirty warnings. It is grey until reached for, and says what it
+     does on hover, so nobody has to guess the symbol.
+
+     A circled cross, not a bin — nothing is deleted. The LR number stays in the
+     register marked cancelled, so the numbering never has a gap.
+
+     Every rule is enforced in the database function (file 44). What is drawn
+     here is only what the agent is INVITED to do; the checks below are to avoid
+     offering something that would then be refused. -------------------------- */
+  const CANCELLABLE=['booked','received_at_origin','sorted'];
+
+  function cancelIcon(b){
+    if(b.status==='cancelled')
+      return `<span class="cwho">${b.cancelled_at?new Date(b.cancelled_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):''}</span>`;
+    if(b.status==='delivered'||b.status==='returned') return '';
+
+    // only the branch that booked it may cancel it
+    const mine = IS_ADMIN || (__me.branch && b.origin &&
+      String(__me.branch).toUpperCase()===String(b.origin.code).toUpperCase());
+    if(!mine) return '';
+
+    // past 'sorted' the goods are moving; a padlock explains rather than hides
+    if(!CANCELLABLE.includes(b.status))
+      return `<span class="tipwrap"><span class="tip wide">Already on the move \u2014 hold it back at loading, or return it</span>
+        <button class="ico lockd" aria-label="Cannot be cancelled">
+          <svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="9" rx="2"/>
+          <path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button></span>`;
+
+    return `<span class="tipwrap"><span class="tip">Cancel this consignment</span>
+      <button class="ico canx" data-id="${b.id}" data-no="${b.booking_number}"
+        aria-label="Cancel ${b.booking_number}">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+      </button></span>`;
+  }
+
+  el('bookings').addEventListener('click',async e=>{
+    const btn=e.target.closest('.canx'); if(!btn) return;
+    const id=btn.dataset.id, no=btn.dataset.no;
+
+    const chk=await window.N2K.cancellable(id);
+    if(!chk.ok){ alert(chk.why); return; }
+
+    const reasons=window.N2K.CANCEL_REASONS;
+    const pick=prompt('Cancel '+no+'?\n\nThis cannot be undone. The LR number stays in the '+
+      'register marked cancelled.\n\nReason:\n'+
+      reasons.map((r,i)=>(i+1)+'. '+r).join('\n')+'\n\nType the number:');
+    if(!pick) return;
+    const idx=parseInt(pick,10)-1;
+    if(isNaN(idx)||idx<0||idx>=reasons.length){ alert('Pick a number from the list.'); return; }
+    const note=prompt('Note (optional):')||'';
+
+    btn.disabled=true;
+    try{
+      await window.N2K.cancelBooking(id, reasons[idx]+(note?' \u2014 '+note:''));
+      await loadBookings();
+    }catch(err){ alert('Not cancelled \u2014 '+(err.message||err)); btn.disabled=false; }
+  });
+
+  function drawBookings(){
+    let rows=ROWS.slice().filter(inPeriod);
+    if(FILTER==='attention') rows=rows.filter(isAttention);
+    if(STAGEF){ const st=STAGES.find(s=>s.k===STAGEF).st; rows=rows.filter(b=>st.includes(b.status)); }
+    // cancelled rows are shown in the list but never counted as needing attention
+    if(QUERY){ const q=QUERY.toLowerCase();
+      rows=rows.filter(b=>(b.booking_number||'').toLowerCase().includes(q)||
+        (b.receiver_name||'').toLowerCase().includes(q)); }
+    const stageLab=STAGEF?(' \u00b7 '+STAGES.find(s=>s.k===STAGEF).lab):'';
+    const attLab=(FILTER==='attention')?' \u00b7 needs attention':'';
+    el('bktitle').textContent='Bookings \u00b7 '+PERIOD_LAB[PERIOD]+stageLab+attLab+' ('+rows.length+')';
+    const show=rows.slice(0,25);
+    el('bookings').innerHTML = show.length ? `<div class="tw"><table><thead><tr>
+        <th>LR</th><th>Route</th><th>Consignee</th><th class="r">Pcs</th><th class="r">Amount</th>
+        <th>Status</th><th class="r">Age</th><th title="Attached photo/video"></th><th></th></tr></thead>
+      <tbody>${show.map(b=>`<tr>
+        <td class="mono">${b.booking_number}</td>
+        <td>${b.origin?b.origin.code:'\u2014'} \u2192 ${b.dest?b.dest.code:'\u2014'}</td>
+        <td>${esc(b.receiver_name||'\u2014')}</td>
+        <td class="r mono">${b.total_pieces||''}</td>
+        <td class="r mono">${rup(b.grand_total)}</td>
+        <td><span class="pill ${PILL(b.status)}">${String(b.status||'').replace(/_/g,' ')}</span>${isAttention(b)?' <span class="pill red">attention</span>':''}</td>
+        <td class="r mono">${age(Date.now()-new Date(b.created_at).getTime())}</td>
+        <td class="mediacell" data-id="${b.id||''}"></td>
+        <td class="r" style="white-space:nowrap">${b.id?`<button class="tbtn lrp" data-id="${b.id}">Print LR</button>`:''}${
+          b.id?cancelIcon(b):''}</td>
+      </tr>`).join('')}</tbody></table></div>
+      ${rows.length>25?`<div class="empty" style="padding:10px">Showing first 25 of ${rows.length} \u2014 narrow it with search or the filters.</div>`:''}`
+      : `<div class="empty"><b>No bookings ${PERIOD==='today'?'today':'in this period'}</b>${(FILTER!=='all'||STAGEF||QUERY)?'Try clearing the filters, or widen the period.':'Try a wider period \u2014 7 or 30 days.'}</div>`;
+    loadMediaBadges(show);
+  }
+
+  /* Most LRs have nothing attached, so the cell stays blank by default —
+     the badge only appears once we know there's something to check. One
+     bulk query covers every row on screen, not one query per row. */
+  async function loadMediaBadges(rows){
+    const ids=rows.map(b=>b.id).filter(Boolean);
+    if(!ids.length) return;
+    let counts;
+    try{ counts=await window.N2K.bookingMedia.countsFor(ids); }
+    catch(e){ console.error('media counts failed:',e); return; }
+    Object.entries(counts).forEach(([id,c])=>{
+      const cell=el('bookings').querySelector('.mediacell[data-id="'+id+'"]');
+      if(!cell) return;
+      const parts=[];
+      if(c.photo) parts.push(c.photo);
+      if(c.video) parts.push(c.video);
+      cell.innerHTML=`<button class="mediabtn" data-id="${id}" title="Attached: ${c.photo||0} photo, ${c.video||0} video">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        ${parts.join('\u00b7')}</button>`;
+    });
+  }
+  el('bookings').addEventListener('click',async e=>{
+    const mb=e.target.closest('.mediabtn'); if(!mb) return;
+    openMediaLightbox(mb.dataset.id);
+  });
+
+  // ---------- media lightbox: view what's attached to an LR ----------
+  let LB_ITEMS=[];
+  async function openMediaLightbox(bookingId){
+    el('lbtitle').textContent='Loading\u2026';
+    el('lbmedia').innerHTML=''; el('lbstrip').innerHTML='';
+    el('lbmodal').classList.add('open');
+    try{
+      LB_ITEMS=await window.N2K.bookingMedia.list(bookingId);
+      if(!LB_ITEMS.length){ el('lbtitle').textContent='Nothing attached'; return; }
+      el('lbstrip').innerHTML=LB_ITEMS.map((m,i)=>`
+        <div class="lbthumb" data-i="${i}">
+          ${m.kind==='photo'?`<img src="${m.publicUrl}" alt="">`:`<video src="${m.publicUrl}" muted></video>
+            <div class="vm"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>`}
+        </div>`).join('');
+      showLbItem(0);
+    }catch(e){
+      el('lbtitle').textContent='Could not load attachments';
+      console.error('media list failed:',e);
+    }
+  }
+  function showLbItem(i){
+    const m=LB_ITEMS[i]; if(!m) return;
+    el('lbtitle').textContent=(m.kind==='video'?'Video':'Photo')+' '+(i+1)+' of '+LB_ITEMS.length;
+    el('lbmedia').innerHTML = m.kind==='photo'
+      ? `<img src="${m.publicUrl}" alt="">`
+      : `<video src="${m.publicUrl}" controls autoplay></video>`;
+    el('lbstrip').querySelectorAll('.lbthumb').forEach(t=>t.classList.toggle('on',+t.dataset.i===i));
+  }
+  el('lbstrip').addEventListener('click',e=>{
+    const t=e.target.closest('.lbthumb'); if(!t) return;
+    showLbItem(+t.dataset.i);
+  });
+  function closeLightbox(){
+    el('lbmodal').classList.remove('open'); el('lbmedia').innerHTML=''; el('lbstrip').innerHTML=''; LB_ITEMS=[];
+  }
+  el('lbclose').addEventListener('click',closeLightbox);
+  el('lbmodal').addEventListener('click',e=>{ if(e.target===el('lbmodal')) closeLightbox(); });
+
+
+  el('periods').addEventListener('click',e=>{
+    const c=e.target.closest('.chip'); if(!c)return;
+    document.querySelectorAll('#periods .chip').forEach(x=>x.classList.remove('on'));
+    c.classList.add('on'); PERIOD=c.dataset.p; drawBookings();
+  });
+  el('chips').addEventListener('click',e=>{
+    const c=e.target.closest('.chip'); if(!c)return;
+    const on=c.classList.toggle('on');          // a switch, not a second All
+    FILTER = on ? 'attention' : 'all';
+    drawBookings();
+  });
+  el('q').addEventListener('input',()=>{ QUERY=el('q').value.trim(); drawBookings(); });
+  el('bookings').addEventListener('click',async e=>{
+    const b=e.target.closest('.lrp'); if(!b)return;
+    b.disabled=true; const t=b.textContent; b.textContent='\u2026';
+    try{ await window.N2K.printLR(b.dataset.id); }catch(err){ alert(err.message); }
+    b.disabled=false; b.textContent=t;
+  });
+
+  let lastRun=0, pending=null, poll=null;
+  /* ---------------- expiry alerts ----------------
+     Admin sees every branch. An agent sees their own branch's driver licences
+     plus anything already expired anywhere — the scope rule lives in
+     N2K.alerts() so it cannot drift between pages. ---------------------- */
+  let ALERTS=[], ALB='expired';
+
+  function alBucketCounts(){
+    const c={expired:0,'7':0,'15':0,'30':0};
+    ALERTS.forEach(a=>{ if(c[a.bucket]!=null) c[a.bucket]++; });
+    return c;
+  }
+  function alDue(a){
+    if(a.days_left!=null){
+      if(a.days_left<0)  return Math.abs(a.days_left)+'d overdue';
+      if(a.days_left===0)return 'today';
+      return a.days_left+'d left';
+    }
+    if(a.km_remaining!=null){
+      if(a.km_remaining<=0) return Math.abs(a.km_remaining)+' km over';
+      return a.km_remaining+' km left';
+    }
+    return '\u2014';
+  }
+  function drawAlerts(){
+    const card=el('alcard');
+    if(!ALERTS.length){ card.style.display='none'; return; }
+    card.style.display='';
+
+    const c=alBucketCounts();
+    el('alcount').textContent=c.expired?c.expired+' expired':(ALERTS.length+' upcoming');
+    el('alcount').className='pill '+(c.expired?'red':'amber');
+    el('alsub').textContent=IS_ADMIN
+      ? 'All branches \u00b7 licences, vehicle papers and service due'
+      : 'Your branch\u2019s licences \u00b7 expired items from anywhere';
+
+    el('albuckets').innerHTML=window.N2K.ALERT_BUCKETS.map(b=>`
+      <button class="alb ${b.k==='expired'?'gone':''} ${ALB===b.k?'on':''}" data-b="${b.k}">
+        ${b.lab}<span class="n">${c[b.k]||0}</span></button>`).join('');
+
+    const rows=ALERTS.filter(a=>a.bucket===ALB);
+    el('albody').innerHTML = rows.length ? `
+      <table class="altab"><thead><tr>
+        <th>What</th><th>Who / which</th><th>Due</th><th>Date</th>${IS_ADMIN?'<th>Branch</th>':''}
+      </tr></thead><tbody>
+      ${rows.map(a=>`<tr class="${a.bucket==='expired'?'gone':''}">
+        <td>${esc(a.item)}</td>
+        <td><div class="alwho">${esc(a.name||'\u2014')}</div>
+            ${a.ref_no?`<div class="alref mono">${esc(a.ref_no)}</div>`:''}</td>
+        <td><span class="pill ${a.bucket==='expired'?'red':(a.bucket==='7'?'amber':'grey')}">${esc(alDue(a))}</span></td>
+        <td class="mono">${a.due_date||'\u2014'}</td>
+        ${IS_ADMIN?`<td class="alscope">${esc(a.branch_code||(a.scope==='company'?'company-wide':'\u2014'))}</td>`:''}
+      </tr>`).join('')}</tbody></table>`
+      : `<div class="empty"><b>Nothing in this window</b>Everything here is valid for now.</div>`;
+  }
+  el('albuckets').addEventListener('click',e=>{
+    const b=e.target.closest('.alb'); if(!b)return;
+    ALB=b.dataset.b; drawAlerts();
+  });
+  async function loadAlerts(){
+    try{ ALERTS=await window.N2K.alerts(__me); }
+    catch(e){ console.warn('alerts unavailable',e.message); ALERTS=[]; }
+    // open on the most urgent bucket that actually has something in it
+    const c=alBucketCounts();
+    if(!c[ALB]) ALB=(window.N2K.ALERT_BUCKETS.find(b=>c[b.k])||{k:'expired'}).k;
+    drawAlerts();
+  }
+
+  /* Cash shortages — admin sees every branch (company-wide, per how the
+     rest of this page already works for them); a branch login sees only
+     shortfalls recorded AT their own branch, as the destination that
+     under-collected. That is the opposite of how the rest of this
+     dashboard is scoped (by ORIGIN, i.e. what a branch booked) — deliberate,
+     since a shortfall is fundamentally a destination-side event. */
+  async function loadShortages(){
+    let rows=[];
+    try{ rows=await window.N2K.codShortfalls(IS_ADMIN?null:__me.branch); }
+    catch(e){ console.warn('cash shortages unavailable',e.message); }
+    const card=el('shortcard');
+    card.style.display=rows.length?'block':'none';
+    if(!rows.length) return;
+    el('shortcount').textContent=rows.length+' open';
+    el('shortbrh').style.display=IS_ADMIN?'':'none';
+    el('shortbody').innerHTML=rows.map(r=>`<tr data-id="${r.id}">
+        <td class="mono">${esc(r.booking_number||'\u2014')}</td>
+        <td>${esc(r.receiver_name||'\u2014')}</td>
+        <td class="r mono">${rup(r.due)}</td>
+        <td class="r mono">${rup(r.collected)}</td>
+        <td class="r mono" style="color:var(--red);font-weight:700">${rup(r.short)}</td>
+        <td>${esc(r.staff_name||'\u2014')}<div class="sub2">${age(Date.now()-new Date(r.delivered_at).getTime())} ago</div></td>
+        ${IS_ADMIN?`<td>${esc(r.branch_code||'\u2014')}</td>`:'<td style="display:none"></td>'}
+        <td class="r"><button class="tbtn shortok" data-id="${r.id}">Mark settled</button></td>
+      </tr>`).join('');
+  }
+  el('shortbody').addEventListener('click',async e=>{
+    const b=e.target.closest('.shortok'); if(!b) return;
+    b.disabled=true; b.textContent='Saving…';
+    try{ await window.N2K.resolveCodShortfall(b.dataset.id); await loadShortages(); }
+    catch(err){ b.disabled=false; b.textContent='Mark settled'; alert(err.message); }
+  });
+
+  let firstPaint=true;
+  async function refreshAll(reason){
+    lastRun=Date.now();
+    /* On the FIRST load the four sections are awaited together and the page is
+       revealed once, instead of each panel dropping in as its own query comes
+       back. Later refreshes update in place, so the screen does not blink every
+       time something changes. */
+    if(firstPaint){
+      firstPaint=false;
+      const wrap=document.querySelector('.wrap');
+      if(wrap) wrap.style.transition='opacity .15s';   // already hidden in the markup
+      try{ await Promise.all([loadCounts(),loadAtts(),loadBookings(),loadAlerts(),loadShortages()]); }
+      catch(e){ console.error('dashboard load failed:',e); }
+      finally{ if(wrap) wrap.style.opacity='1'; }
+    } else {
+      loadCounts(); loadAtts(); loadBookings(); loadAlerts(); loadShortages();
+    }
+    if(reason==='push'){
+      const d=el('livedot'); d.classList.add('flash');
+      setTimeout(()=>d.classList.remove('flash'),800);
+    }
+  }
+  // never fire more than once every 2s, however many changes arrive at once
+  function nudge(reason){
+    if(pending) return;
+    const wait=Math.max(0,2000-(Date.now()-lastRun));
+    pending=setTimeout(()=>{pending=null;refreshAll(reason);},wait);
+  }
+  function startPolling(ms){ if(poll) clearInterval(poll); poll=setInterval(()=>nudge('poll'),ms); }
+
+  refreshAll('init');
+
+  // live push from the database (falls back to polling if unavailable)
+  const chan=window.N2K.subscribe(['bookings','trips','trip_items','consignment_items'],()=>nudge('push'));
+  if(chan){
+    el('livedot').classList.add('on');
+    el('mode').textContent='live · updates as they happen';
+    startPolling(60000);                 // safety net behind the push
+  }else{
+    el('mode').textContent='refreshes every 30s';
+    startPolling(30000);
+  }
+
+  // don't waste queries in a background tab; catch up the moment it returns
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){ if(poll) clearInterval(poll); poll=null; }
+    else { refreshAll('focus'); startPolling(chan?60000:30000); }
+  });
+  window.addEventListener('focus',()=>{ if(Date.now()-lastRun>5000) nudge('focus'); });
+</script>
+</body>
+</html>
